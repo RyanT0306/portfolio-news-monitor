@@ -6,7 +6,7 @@ Most sentiment tools tell you whether an article sounds positive. This one asks 
 companies I own and how much of each, does this story help or hurt me?* It scores every holding, drops the ones the
 story doesn't touch, and rolls the rest into one 0–100 reading on a gauge.
 
-![Light mode, FinBERT result for a CommBank story](docs/screenshot-light.jpg)
+![Claude and FinBERT side by side on a CommBank story](docs/screenshot-light.jpg)
 
 ## Two engines, side by side
 
