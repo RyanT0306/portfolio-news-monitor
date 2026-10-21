@@ -1,0 +1,28 @@
+[project]
+name = "portfolio-news-monitor"
+version = "0.1.0"
+description = "Score how a news article affects a weighted ASX portfolio (Claude or FinBERT)."
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "anthropic>=0.70",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+finbert = ["transformers>=4.44", "torch>=2.4"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "httpx>=0.27"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["."]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]

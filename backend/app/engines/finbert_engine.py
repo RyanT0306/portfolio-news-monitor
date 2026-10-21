@@ -1,0 +1,98 @@
+"""FinBERT engine: free, local, and literal.
+
+FinBERT only reads tone, so it can't tell which company a sentence is good or
+bad for. We narrow it down by scoring only the sentences that name a holding.
+Holdings the article never names are marked not relevant, which is exactly
+where this engine and the Claude engine part ways.
+"""
+
+import asyncio
+import importlib.util
+import re
+import threading
+from collections.abc import Callable
+
+from ..asx import mentions
+from ..models import EngineResult, HoldingSentiment, ResolvedHolding
+from .base import EngineError, EngineStatus
+
+MODEL_ID = "ProsusAI/finbert"
+_MAX_QUOTED = 2
+_MAX_QUOTE_CHARS = 220
+
+# A classifier takes sentences and returns, per sentence, every label with its score.
+Classifier = Callable[[list[str]], list[list[dict]]]
+
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[\"'(A-Z0-9])|\n+")
+
+
+def split_sentences(text: str) -> list[str]:
+    return [s.strip() for s in _SENTENCE_END.split(text) if s and s.strip()]
+
+
+class FinbertEngine:
+    name = "finbert"
+
+    def __init__(self, classifier: Classifier | None = None):
+        self._classifier = classifier
+        self._lock = threading.Lock()
+
+    def status(self) -> EngineStatus:
+        if self._classifier is not None:
+            return "ready"
+        if importlib.util.find_spec("transformers") is None or importlib.util.find_spec("torch") is None:
+            return "unavailable"
+        return "not_loaded"
+
+    def _load(self) -> Classifier:
+        with self._lock:
+            if self._classifier is None:
+                if self.status() == "unavailable":
+                    raise EngineError("FinBERT isn't installed. Run: pip install -e '.[finbert]'")
+                from transformers import pipeline
+
+                pipe = pipeline("text-classification", model=MODEL_ID, top_k=None, truncation=True)
+                self._classifier = lambda sentences: pipe(sentences, batch_size=16)
+            return self._classifier
+
+    async def analyze(self, news: str, holdings: list[ResolvedHolding]) -> EngineResult:
+        return await asyncio.to_thread(self._analyze_sync, news, holdings)
+
+    def _analyze_sync(self, news: str, holdings: list[ResolvedHolding]) -> EngineResult:
+        sentences = split_sentences(news)
+        hits = {h.ticker: [s for s in sentences if mentions(s, h)] for h in holdings}
+        to_score = list(dict.fromkeys(s for found in hits.values() for s in found))
+
+        scores: dict[str, dict[str, float]] = {}
+        if to_score:
+            raw = self._load()(to_score)
+            scores = {s: {d["label"].lower(): float(d["score"]) for d in row} for s, row in zip(to_score, raw)}
+
+        per_holding = []
+        for h in holdings:
+            found = hits[h.ticker]
+            if not found:
+                per_holding.append(HoldingSentiment(ticker=h.ticker, relevant=False, reason="Not mentioned in the article."))
+                continue
+            n = len(found)
+            bull = sum(scores[s].get("positive", 0) for s in found) / n
+            neu = sum(scores[s].get("neutral", 0) for s in found) / n
+            bear = sum(scores[s].get("negative", 0) for s in found) / n
+            total = bull + neu + bear or 1.0
+            bull, neu, bear = bull / total, neu / total, bear / total
+            per_holding.append(
+                HoldingSentiment(
+                    ticker=h.ticker,
+                    relevant=True,
+                    bullish=bull,
+                    neutral=neu,
+                    bearish=bear,
+                    reason=" ".join(f"“{_clip(s)}”" for s in found[:_MAX_QUOTED]),
+                    confidence=round(max(bull, neu, bear) * 100),
+                )
+            )
+        return EngineResult(per_holding=per_holding)
+
+
+def _clip(sentence: str) -> str:
+    return sentence if len(sentence) <= _MAX_QUOTE_CHARS else sentence[: _MAX_QUOTE_CHARS - 1].rstrip() + "…"
