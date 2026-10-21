@@ -130,3 +130,7 @@ inspired by Stocktwits' sentiment meter.
 - The sample stories in the app are made up.
 
 **For research and education only. Not investment advice.**
+
+## License
+
+MIT. See [LICENSE](LICENSE).
