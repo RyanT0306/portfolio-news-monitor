@@ -1,0 +1,130 @@
+# 交接文件：Portfolio News Monitor（澳股持股組合新聞監測器）
+
+最後更新：2026-10-21。對象：接手這個專案的下一段 Claude Code 對話。
+
+## 1. 這是什麼、為什麼做
+
+- 使用者輸入澳股（ASX）持股與權重，貼上一則新聞。系統判斷這則新聞對**整個持股組合**是看好、中立還是看壞，給出三類百分比與 0–100 分數，並用 Stocktwits 風格的半圓儀表盤呈現。
+- 這是使用者的**作品集／學習專題**，重點是「能完整跑起來、畫面好看、評分邏輯講得清楚」。Claude 與 FinBERT 兩種引擎可以並排比較，這是展示亮點。
+- 使用者用**繁體中文**溝通，網站介面是**英文**。
+- 說明要白話，指令要直接給可貼上執行的完整命令。
+
+## 2. 目前狀態（全部完成並已驗證）
+
+| 項目 | 狀態 |
+|---|---|
+| 後端（FastAPI）| 完成，70 個 pytest 全部通過 |
+| 前端（Vite + React + TS）| 完成，17 個 Vitest 通過，`npm run build` 成功 |
+| FinBERT 模式 | 在瀏覽器實測通過 |
+| Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
+| 並排比較 | 在瀏覽器實測通過，切換按鈕正常 |
+| 手機版、亮色／暗色模式 | 實測通過，沒有水平捲動 |
+| README（含截圖）| 完成 |
+| git | 4 個 commit，工作區乾淨 |
+
+實測結果（持股 BHP 40／CBA 30／CSL 30）：
+
+| 新聞 | Claude | FinBERT |
+|---|---|---|
+| 鐵礦砂跌價（沒有點名公司）| 16 強烈看壞（透過鐵礦砂價格連到 BHP）| 判為無關 |
+| CBA 創紀錄獲利 | 76 看好 | 96 強烈看好 |
+| CSL 調降財測 | （未測）| 2 強烈看壞 |
+| 澳洲央行升息、澳幣升值 | 42 中立（BHP 32、CBA 60、CSL 35）| 判為無關 |
+
+## 3. 位置與結構
+
+專案根目錄：這個 repo 的根目錄。它自己是一個 git repo，沒有 remote。
+
+```
+backend/
+  app/models.py              Pydantic 資料結構（API 輸入輸出、引擎介面）
+  app/aggregate.py           評分公式，純函式
+  app/asx.py                 ASX 公司名單、搜尋、「這句話有沒有提到這家公司」的比對
+  app/engines/base.py        Engine Protocol、EngineError（可直接顯示給使用者的錯誤）
+  app/engines/finbert_engine.py
+  app/engines/claude_engine.py
+  app/main.py                路由 /api/health、/api/tickers、/api/analyze
+  data/asx_companies.csv     ASX 官方清單，約 2,051 家
+  scripts/build_asx_list.py  從 asx.com.au 重新產生 CSV，ALIASES 字典放常見俗稱
+  tests/                     test_aggregate / test_asx / test_finbert_engine / test_claude_engine / test_api
+  .env                       使用者的 ANTHROPIC_API_KEY（已被 gitignore）
+  .env.example
+frontend/
+  src/App.tsx                主畫面、表單驗證、引擎狀態輪詢
+  src/components/            SentimentGauge, ResultPanel, HoldingBreakdown, HoldingsEditor, HistoryList
+  src/lib/gauge.ts(+test)    儀表盤幾何與分區
+  src/lib/api.ts             型別與 fetch
+  src/lib/storage.ts         localStorage（持股、引擎選擇、最近 20 筆紀錄），存取都包 try/catch
+  src/lib/examples.ts        3 則虛構範例新聞
+  src/styles.css             設計 token、亮暗主題、RWD
+docs/
+  superpowers/specs/2026-10-21-portfolio-news-monitor-design.md   原始設計與計畫（已核准）
+  screenshot-light.jpg / screenshot-dark.jpg
+  HANDOFF.md（本檔）/ HANDOFF_PROMPT.md
+README.md
+```
+
+## 4. 核心邏輯（不要隨意改變語意）
+
+1. 每個引擎對每檔持股回傳 `HoldingSentiment`：`relevant` 與三類機率（總和為 1）。
+2. 使用者輸入的權重總和偏離 100 超過 0.5 個百分點時，按比例縮放並回傳 `weights_adjusted=true`。
+3. **無關的持股排除不算**（使用者的決定），相關持股的權重重新分配成總和 1。
+4. 組合機率 = 加權平均。`score = round(50 + 50 × (bull − bear))`。
+5. 分區：`<20` 強烈看壞、`20–39` 看壞、`40–60` 中立、`61–80` 看好、`>80` 強烈看好。前端 `gauge.ts` 的 `zoneFor()` 與後端 `label_for()` 必須一致，兩邊都有測試。
+6. `exposure` = 相關持股的原始權重總和，畫面顯示為「Affects X% of your portfolio」。
+7. 沒有任何相關持股時，`status="unrelated"`。單一引擎失敗會回 `status="error"` 與錯誤訊息，不影響另一個引擎。
+
+### Claude 引擎
+- 使用 `client.beta.messages.parse(output_format=ClaudeAnalysis, output_config={"effort":"low"}, betas=["server-side-fallback-2026-07-01"], fallbacks="default")`。
+- 模型預設 `claude-opus-5-5`，可用 `CLAUDE_MODEL` 覆蓋。anthropic SDK 版本是 1.17.0。
+- Schema 刻意不放數值上下限，改在後端 clamp 並重新正規化。不在輸入清單內的 ticker 丟掉，缺少的 ticker 視為無關。
+- `stop_reason == "refusal"` 會丟出 EngineError；`parsed_output` 為 None 時重試 1 次。
+- System prompt 的分析紀律參考 `jordan5226/tw_stock_news_ai_monitor`：區分事實與推論、間接影響要寫出管道、不確定就判為無關、不誇大一次性消息、不給目標價。
+
+### FinBERT 引擎
+- 使用 `ProsusAI/finbert`，`transformers` pipeline 搭配 `top_k=None`。伺服器啟動時在背景執行緒預先載入（`FINBERT_PRELOAD=1`），首次會下載約 440MB。
+- 先斷句，只對有提到該持股的句子做判斷，再取平均。比對規則在 `asx.mentions()`：
+  - ticker 必須大寫、完整單字比對。
+  - **容易和一般英文單字混淆的 ticker**（`CAR`、`WOW`、`ORG`、`ALL`、`ASX` 等，見 `_AMBIGUOUS_TICKERS`）必須帶交易所標記，例如 `ASX: CAR` 或 `CAR.AX`。
+  - 公司名稱與別名**區分大小寫**，另外接受全大寫的標題寫法，例如「Origin」會比對，「origin」不會。
+
+## 5. 環境注意事項（很重要）
+
+- **系統 Python 是 3.15，PyTorch 不支援**。所以安裝了 `uv`（Homebrew），後端虛擬環境是 `backend/.venv`（Python 3.13）。一律用 `backend/.venv/bin/python`、`.venv/bin/pytest`、`.venv/bin/uvicorn`，不要用系統的 `python3` 跑後端。
+- 安裝依賴：`cd backend && uv pip install -e ".[dev,finbert]"`。
+- **macOS 權限限制**：App 預覽工具（`preview_start`）無法執行桌面資料夾裡的 `.venv/bin/uvicorn`（會出現 Operation not permitted）。所以後端要用 Bash 背景執行：
+  `cd backend && .venv/bin/uvicorn app.main:app --port 8000`
+- 前端可以用 `preview_start` 啟動，設定名稱是 `frontend`，設定檔在 專案上一層資料夾的 `.claude/launch.json`，注意不在專案資料夾裡。其中的 `backend` 設定在這台電腦上會失敗。
+- 前端開發伺服器把 `/api` 代理到 `:8000`。後端沒開時，代理會回 500，前端會顯示「Make sure the backend is running on port 8000」。
+- 目前前後端都在執行，但那是上一段對話的背景程序，接手時請先用 `lsof -ti tcp:8000` 與 `lsof -ti tcp:5173` 確認。
+- **API key** 在 `backend/.env`。**絕對不要印出或複述 key 的內容**；要檢查格式時只看長度與前綴（`sk-ant-`）。
+- 沒有安裝 Docker，所以原計畫中的 docker-compose 刻意沒做（不附沒驗證過的設定）。也沒有 `gh` CLI。
+
+## 6. 已知小問題與可以做的下一步（尚未做，等使用者決定）
+
+- `HoldingsEditor` 只在掛載時查一次公司名稱。從歷史紀錄還原新的 ticker 後，名稱可能顯示「Not in ASX list」，直到使用者修改為止。
+- 同一則新聞重複分析，歷史紀錄會出現重複項目，目前沒有去重。
+- 歷史紀錄中引擎錯誤也顯示為「n/a」，沒有和「無關」區分。
+- 開發模式的 React StrictMode 會讓請求發兩次，只發生在開發環境，不影響正式版。
+- Python 的 `round()` 是銀行家捨入（62.5 會變成 62），分數一律由後端計算，前端不重算。
+- 可能的功能延伸（計畫中列為非目標）：貼網址自動抓文章、部署上線（例如前端 Vercel、後端 Render 或 Hugging Face Spaces）、docker-compose、即時股價、更多範例新聞。
+
+## 7. 驗證方式
+
+```bash
+cd backend && .venv/bin/pytest -q
+cd frontend && npm test && npm run build
+```
+
+端到端測試：啟動前後端，打開 http://localhost:5173，點範例新聞後按 Analyze。兩個引擎都勾選時，右上角會出現切換按鈕。
+
+## 8. 參考來源
+
+- 視覺：Stocktwits Sentiment 儀表盤（refero.design）。配色 Dark Mint / Grapefruit / Silver / Night / Cotton，字型 Source Sans 3。
+- 做法：https://github.com/jordan5226/tw_stock_news_ai_monitor 。借用其 JSON schema、五級情緒與提示詞紀律，沒有借用自動爬新聞。
+
+## 9. 工作習慣（使用者偏好）
+
+- commit 訊息結尾加上 `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`。
+- 先寫測試再實作（TDD）。後端測試一律 mock，不下載模型、不呼叫 API。
+- 介面文字用英文、句首大寫，避免全大寫標籤，不放 emoji。
