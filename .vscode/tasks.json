@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start app",
+      "detail": "Backend on :8000 and frontend on :5173",
+      "dependsOn": ["Start backend", "Start frontend"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Start backend",
+      "type": "shell",
+      "command": ".venv/bin/uvicorn app.main:app --port 8000 --reload --reload-dir app",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "group": "app", "panel": "dedicated" }
+    },
+    {
+      "label": "Start frontend",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "group": "app", "panel": "dedicated" }
+    },
+    {
+      "label": "Test all",
+      "detail": "pytest, Vitest, and a production build",
+      "type": "shell",
+      "command": "cd backend && .venv/bin/pytest -q && cd ../frontend && npm test && npm run build",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    }
+  ]
+}

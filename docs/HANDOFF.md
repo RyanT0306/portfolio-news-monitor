@@ -127,3 +127,4 @@ cd frontend && npm test && npm run build
 - commit 訊息結尾加上 `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`。
 - 先寫測試再實作（TDD）。後端測試一律 mock，不下載模型、不呼叫 API。
 - 介面文字用英文、句首大寫，避免全大寫標籤，不放 emoji。
+- 日常開發流程（VS Code 任務、檢查改動、commit、退回）寫在 `docs/WORKFLOW.md`，請照著做。
