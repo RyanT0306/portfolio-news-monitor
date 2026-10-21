@@ -78,14 +78,14 @@
 
 按 `Cmd+Shift+P`，輸入 `Tasks: Run Test Task`，選 **Test all**。它會依序跑後端 pytest、前端 Vitest，再做一次正式版 build。看到全部 passed 和 `built in` 就是成功。
 
-也可以在終端機直接貼上：
+也可以在 VS Code 的終端機直接貼上（它會自動開在專案資料夾）：
 
 ```bash
-cd backend && .venv/bin/pytest -q
+(cd backend && .venv/bin/pytest -q)
 ```
 
 ```bash
-cd frontend && npm test && npm run build
+(cd frontend && npm test && npm run build)
 ```
 
 只想跑後端某一個測試時，用 VS Code 左側燒杯圖示的「測試」面板，點那個測試旁邊的播放鍵。

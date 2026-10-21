@@ -94,10 +94,10 @@ README.md
 
 - **系統 Python 是 3.15，PyTorch 不支援**。所以安裝了 `uv`（Homebrew），後端虛擬環境是 `backend/.venv`（Python 3.13）。一律用 `backend/.venv/bin/python`、`.venv/bin/pytest`、`.venv/bin/uvicorn`，不要用系統的 `python3` 跑後端。
 - 安裝依賴：`cd backend && uv pip install -e ".[dev,finbert]"`。
-- **VS Code**：請開 `portfolio-news-monitor` 資料夾（不是上一層的 `vs code`）。`.vscode/settings.json` 已指定 `backend/.venv` 的 Python，並讓測試面板以 `backend/` 為工作目錄執行 pytest。
+- **VS Code**：請開 `portfolio-news-monitor` 資料夾（不是上一層資料夾）。`.vscode/settings.json` 已指定 `backend/.venv` 的 Python，並讓測試面板以 `backend/` 為工作目錄執行 pytest。
 - **macOS 權限限制**：App 預覽工具（`preview_start`）無法執行桌面資料夾裡的 `.venv/bin/uvicorn`（會出現 Operation not permitted）。所以後端要用 Bash 背景執行：
   `cd backend && .venv/bin/uvicorn app.main:app --port 8000`
-- 前端可以用 `preview_start` 啟動，設定名稱是 `frontend`，設定檔在 專案上一層資料夾的 `.claude/launch.json`，注意不在專案資料夾裡。其中的 `backend` 設定在這台電腦上會失敗。
+- 前端可以用 `preview_start` 啟動，設定名稱是 `frontend`，設定檔在專案上一層資料夾的 `.claude/launch.json`，注意不在專案資料夾裡。其中的 `backend` 設定在這台電腦上會失敗。
 - 前端開發伺服器把 `/api` 代理到 `:8000`。後端沒開時，代理會回 500，前端會顯示「Make sure the backend is running on port 8000」。
 - 目前前後端都在執行，但那是上一段對話的背景程序，接手時請先用 `lsof -ti tcp:8000` 與 `lsof -ti tcp:5173` 確認。
 - **API key** 在 `backend/.env`。**絕對不要印出或複述 key 的內容**；要檢查格式時只看長度與前綴（`sk-ant-`）。
@@ -112,9 +112,11 @@ README.md
 
 ## 7. 驗證方式
 
+以下指令都在專案根目錄執行：
+
 ```bash
-cd backend && .venv/bin/pytest -q
-cd frontend && npm test && npm run build
+(cd backend && .venv/bin/pytest -q)
+(cd frontend && npm test && npm run build)
 ```
 
 端到端測試：啟動前後端，打開 http://localhost:5173，點範例新聞後按 Analyze。兩個引擎都勾選時，右上角會出現切換按鈕。
