@@ -33,7 +33,7 @@
 
 ## 3. 位置與結構
 
-專案根目錄：這個 repo 的根目錄。它自己是一個 git repo，沒有 remote。
+專案根目錄：這個 repo 的根目錄。它自己是一個 git repo，公開放在 GitHub：https://github.com/Trayast0229/portfolio-news-monitor （`origin`，MIT 授權）。
 
 ```
 backend/
@@ -101,7 +101,8 @@ README.md
 - 前端開發伺服器把 `/api` 代理到 `:8000`。後端沒開時，代理會回 500，前端會顯示「Make sure the backend is running on port 8000」。
 - 目前前後端都在執行，但那是上一段對話的背景程序，接手時請先用 `lsof -ti tcp:8000` 與 `lsof -ti tcp:5173` 確認。
 - **API key** 在 `backend/.env`。**絕對不要印出或複述 key 的內容**；要檢查格式時只看長度與前綴（`sk-ant-`）。
-- 沒有安裝 Docker，所以原計畫中的 docker-compose 刻意沒做（不附沒驗證過的設定）。也沒有 `gh` CLI。
+- 沒有安裝 Docker，所以原計畫中的 docker-compose 刻意沒做（不附沒驗證過的設定）。
+- 已用 Homebrew 安裝 `gh` 並登入 Trayast0229，git 透過它以 https 推送。這個 repo 的 `user.email` 設為 GitHub 隱私信箱 `344183369+Trayast0229@users.noreply.github.com`，不要改回個人信箱。commit 後用 `git push` 上傳。
 
 ## 6. 已知小問題與可以做的下一步（尚未做，等使用者決定）
 
