@@ -1,9 +1,0 @@
-pyproject.toml
-app/__init__.py
-app/engines/__init__.py
-portfolio_news_monitor.egg-info/PKG-INFO
-portfolio_news_monitor.egg-info/SOURCES.txt
-portfolio_news_monitor.egg-info/dependency_links.txt
-portfolio_news_monitor.egg-info/requires.txt
-portfolio_news_monitor.egg-info/top_level.txt
-tests/test_aggregate.py
