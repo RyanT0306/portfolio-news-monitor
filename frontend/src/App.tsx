@@ -5,6 +5,7 @@ import { ResultPanel } from "./components/ResultPanel";
 import {
   ENGINE_NAMES,
   analyze,
+  fetchArticle,
   getHealth,
   type AnalyzeResponse,
   type EngineName,
@@ -45,6 +46,10 @@ function validate(holdings: HoldingInput[], news: string, engines: EngineName[])
 export default function App() {
   const [holdings, setHoldings] = useState<HoldingInput[]>(loadHoldings);
   const [news, setNews] = useState("");
+  const [articleUrl, setArticleUrl] = useState("");
+  const [fetching, setFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [fetchNote, setFetchNote] = useState<string | null>(null);
   const [engines, setEngines] = useState<EngineName[]>(loadEngines);
   const [status, setStatus] = useState<Partial<Record<EngineName, EngineStatus>>>({});
   const [response, setResponse] = useState<AnalyzeResponse | null>(null);
@@ -73,6 +78,32 @@ export default function App() {
     setEngines((prev) => (prev.includes(name) ? prev.filter((e) => e !== name) : [...prev, name]));
   }
 
+  async function fetchStory() {
+    if (fetching) return;
+    if (!articleUrl.trim()) return setFetchError("Paste a link to a news article first.");
+    setFetching(true);
+    setFetchError(null);
+    setFetchNote(null);
+    try {
+      const article = await fetchArticle(articleUrl.trim());
+      setNews(article.text);
+      setArticleUrl(article.url);
+      if (article.truncated)
+        setFetchNote(`The article was long, so we kept the first ${MAX_NEWS.toLocaleString()} characters.`);
+    } catch (e) {
+      setFetchError(e instanceof Error ? e.message : "We couldn't fetch that article. Paste the text instead.");
+    } finally {
+      setFetching(false);
+    }
+  }
+
+  function pickSample(text: string) {
+    setNews(text);
+    setArticleUrl("");
+    setFetchError(null);
+    setFetchNote(null);
+  }
+
   async function run() {
     const problem = validate(holdings, news, engines);
     setError(problem);
@@ -84,7 +115,7 @@ export default function App() {
     try {
       const res = await analyze(cleaned, news.trim(), engines);
       setResponse(res);
-      setHistory(addHistory({ news: news.trim(), holdings: cleaned, response: res }));
+      setHistory(addHistory({ news: news.trim(), url: articleUrl.trim() || undefined, holdings: cleaned, response: res }));
       // On a single-column layout the result sits below the form.
       if (window.matchMedia("(max-width: 860px)").matches) {
         document.querySelector(".result")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -99,6 +130,9 @@ export default function App() {
   function openHistory(entry: HistoryEntry) {
     setHoldings(entry.holdings);
     setNews(entry.news);
+    setArticleUrl(entry.url ?? "");
+    setFetchError(null);
+    setFetchNote(null);
     setResponse(entry.response);
     setError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -117,26 +151,58 @@ export default function App() {
 
           <div className="news">
             <label htmlFor="news">News story</label>
+            <div className="article-link">
+              <input
+                type="url"
+                aria-label="Article link"
+                placeholder="Paste a link to a news article"
+                value={articleUrl}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(e) => {
+                  setArticleUrl(e.target.value);
+                  setFetchError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    fetchStory();
+                  }
+                }}
+              />
+              <button type="button" className="secondary" onClick={fetchStory} disabled={fetching}>
+                {fetching ? "Fetching…" : "Fetch"}
+              </button>
+            </div>
+            {fetchError && (
+              <p className="notice notice-error small" role="alert">
+                {fetchError}
+              </p>
+            )}
             <textarea
               id="news"
               value={news}
               maxLength={MAX_NEWS}
               rows={9}
-              placeholder="Paste the headline and article text here."
+              placeholder="Or paste the headline and article text here."
               onChange={(e) => setNews(e.target.value)}
             />
             <div className="news-foot">
               <div className="samples">
                 <span className="muted">Try a sample:</span>
                 {EXAMPLES.map((ex) => (
-                  <button key={ex.title} type="button" className="chip" onClick={() => setNews(ex.text)}>
+                  <button key={ex.title} type="button" className="chip" onClick={() => pickSample(ex.text)}>
                     {ex.title}
                   </button>
                 ))}
               </div>
               <span className="muted">{news.length.toLocaleString()} characters</span>
             </div>
-            <p className="muted small">Sample stories are made up for demonstration.</p>
+            {fetchNote && <p className="muted small">{fetchNote}</p>}
+            <p className="muted small">
+              Sample stories are made up for demonstration. Sites with a paywall or bot protection can't be fetched, so
+              paste their text instead.
+            </p>
           </div>
 
           <fieldset className="engines">

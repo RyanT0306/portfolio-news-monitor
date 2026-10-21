@@ -13,6 +13,8 @@ export interface HistoryEntry {
   id: string;
   at: string;
   news: string;
+  /** The article link the story was fetched from, if any. */
+  url?: string;
   holdings: HoldingInput[];
   response: AnalyzeResponse;
 }

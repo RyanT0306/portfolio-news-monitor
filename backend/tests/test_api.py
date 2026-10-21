@@ -1,9 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app import main
+from app.article import ArticleError
 from app.engines.base import EngineError
 from app.main import app
-from app.models import EngineResult, HoldingSentiment
+from app.models import Article, EngineResult, HoldingSentiment
 
 NEWS = "BHP shares slumped 4% after the miner cut its iron ore production guidance for the year."
 
@@ -108,3 +110,33 @@ def test_tickers_are_cleaned(client):
 )
 def test_invalid_requests_are_rejected(client, overrides):
     assert client.post("/api/analyze", json=body(**overrides)).status_code == 422
+
+
+def test_article_returns_the_fetched_text(client, monkeypatch):
+    async def fake_fetch(url):
+        return Article(url=url, title="BHP cuts guidance", text="BHP cuts guidance\n\n" + NEWS, truncated=False)
+
+    monkeypatch.setattr(main, "fetch_article", fake_fetch)
+    res = client.post("/api/article", json={"url": "https://news.example/bhp"})
+    assert res.status_code == 200
+    assert res.json() == {
+        "url": "https://news.example/bhp",
+        "title": "BHP cuts guidance",
+        "text": "BHP cuts guidance\n\n" + NEWS,
+        "truncated": False,
+    }
+
+
+def test_article_errors_come_back_as_readable_messages(client, monkeypatch):
+    async def fake_fetch(url):
+        raise ArticleError("This site needs a subscription.")
+
+    monkeypatch.setattr(main, "fetch_article", fake_fetch)
+    res = client.post("/api/article", json={"url": "https://news.example/bhp"})
+    assert res.status_code == 422
+    assert res.json() == {"detail": "This site needs a subscription."}
+
+
+@pytest.mark.parametrize("url", ["", "https://news.example/" + "a" * 2000])
+def test_article_rejects_empty_or_huge_links(client, url):
+    assert client.post("/api/article", json={"url": url}).status_code == 422

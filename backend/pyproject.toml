@@ -9,6 +9,8 @@ dependencies = [
     "pydantic>=2.7",
     "anthropic>=0.70",
     "python-dotenv>=1.0",
+    "httpx>=0.27",
+    "trafilatura>=2.0",
 ]
 
 [project.optional-dependencies]

@@ -20,6 +20,14 @@ story doesn't touch, and rolls the rest into one 0–100 reading on a gauge.
 You can run both at once and compare. The sample story **"Iron ore slides"** shows the difference well: it never
 names a company, so FinBERT finds nothing relevant, while Claude links falling iron ore prices to miners like BHP.
 
+## Fetch a story from a link
+
+Paste a link to a news article and press **Fetch**. The backend downloads the page, pulls out the headline and article
+text with [trafilatura](https://trafilatura.readthedocs.io/), and drops it into the story box so you can check it
+before you analyze. Sites with a paywall or bot protection (Reuters, the AFR) can't be fetched; the app says so, and you
+can paste the text instead. The server only fetches public addresses on the standard ports, and re-checks every
+redirect.
+
 ## How the score works
 
 1. Each engine rates each holding as bullish, neutral, or bearish, as probabilities that add up to 100%.
@@ -76,7 +84,7 @@ Create an API key at [console.anthropic.com](https://console.anthropic.com), put
 ## Tests
 
 ```bash
-cd backend && .venv/bin/pytest     # scoring, ASX matching, both engines (mocked), API
+cd backend && .venv/bin/pytest     # scoring, ASX matching, both engines (mocked), article fetching (mocked), API
 cd frontend && npm test            # gauge geometry and zone boundaries
 ```
 
@@ -90,7 +98,8 @@ backend/
   app/asx.py                ASX company list, search, and "does this sentence name this company?"
   app/engines/finbert_engine.py
   app/engines/claude_engine.py
-  app/main.py               FastAPI routes: /api/health, /api/tickers, /api/analyze
+  app/article.py            Fetch a news page and extract its headline and text
+  app/main.py               FastAPI routes: /api/health, /api/tickers, /api/article, /api/analyze
   data/asx_companies.csv    all ~2,050 ASX-listed companies
   scripts/build_asx_list.py regenerates the CSV from asx.com.au
 frontend/

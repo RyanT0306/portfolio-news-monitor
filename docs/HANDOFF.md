@@ -13,7 +13,7 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 後端（FastAPI）| 完成，70 個 pytest 全部通過 |
+| 後端（FastAPI）| 完成，105 個 pytest 全部通過 |
 | 前端（Vite + React + TS）| 完成，28 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
@@ -43,7 +43,8 @@ backend/
   app/engines/base.py        Engine Protocol、EngineError（可直接顯示給使用者的錯誤）
   app/engines/finbert_engine.py
   app/engines/claude_engine.py
-  app/main.py                路由 /api/health、/api/tickers、/api/analyze
+  app/article.py             貼網址抓文章：安全檢查（只抓公開位址、80/443、每次轉址都重查）、trafilatura 取出標題與內文
+  app/main.py                路由 /api/health、/api/tickers、/api/article、/api/analyze
   data/asx_companies.csv     ASX 官方清單，約 2,051 家
   scripts/build_asx_list.py  從 asx.com.au 重新產生 CSV，ALIASES 字典放常見俗稱
   tests/                     test_aggregate / test_asx / test_finbert_engine / test_claude_engine / test_api
@@ -106,7 +107,7 @@ README.md
 
 - 開發模式的 React StrictMode 會讓請求發兩次，只發生在開發環境，不影響正式版。
 - Python 的 `round()` 是銀行家捨入（62.5 會變成 62），分數一律由後端計算，前端不重算。
-- 可能的功能延伸（計畫中列為非目標）：貼網址自動抓文章、部署上線（例如前端 Vercel、後端 Render 或 Hugging Face Spaces）、docker-compose、即時股價、更多範例新聞。
+- 可能的功能延伸（計畫中列為非目標）：部署上線（例如前端 Vercel、後端 Render 或 Hugging Face Spaces）、docker-compose、即時股價、更多範例新聞。部署時注意 `/api/article` 會替使用者抓網頁，已擋內部位址，但仍建議加上速率限制。
 
 ## 7. 驗證方式
 

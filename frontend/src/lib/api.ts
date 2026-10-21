@@ -93,3 +93,18 @@ export function analyze(holdings: HoldingInput[], news: string, engines: EngineN
     body: JSON.stringify({ holdings, news, engines }),
   });
 }
+
+export interface Article {
+  url: string;
+  title: string | null;
+  text: string;
+  truncated: boolean;
+}
+
+export function fetchArticle(url: string) {
+  return request<Article>("/api/article", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+}

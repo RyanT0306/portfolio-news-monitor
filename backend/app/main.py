@@ -5,14 +5,23 @@ import threading
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 
 from .aggregate import aggregate, normalize_weights
+from .article import ArticleError, fetch_article
 from .asx import resolve, search
 from .engines.base import Engine, EngineError
 from .engines.claude_engine import ClaudeEngine
 from .engines.finbert_engine import FinbertEngine
-from .models import AnalyzeRequest, AnalyzeResponse, EngineName, PortfolioResult, ResolvedHolding
+from .models import (
+    AnalyzeRequest,
+    AnalyzeResponse,
+    Article,
+    EngineName,
+    FetchArticleRequest,
+    PortfolioResult,
+    ResolvedHolding,
+)
 
 load_dotenv()
 log = logging.getLogger("portfolio-news-monitor")
@@ -52,6 +61,14 @@ def health(request: Request):
 @app.get("/api/tickers")
 def tickers(q: str = Query("", max_length=40)):
     return [{"ticker": c.ticker, "name": c.name} for c in search(q)]
+
+
+@app.post("/api/article", response_model=Article)
+async def article(body: FetchArticleRequest) -> Article:
+    try:
+        return await fetch_article(body.url)
+    except ArticleError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @app.post("/api/analyze", response_model=AnalyzeResponse)

@@ -310,6 +310,40 @@ textarea {
   margin: 0.375rem 0 0;
 }
 
+.article-link {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.article-link input {
+  flex: 1;
+  min-width: 0;
+}
+
+.news .notice-error {
+  margin: 0 0 0.5rem;
+}
+
+.secondary {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--silver);
+}
+
+.secondary:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .engines {
   display: grid;
   gap: 0.5rem;

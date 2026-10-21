@@ -39,6 +39,10 @@ class AnalyzeRequest(BaseModel):
         return self
 
 
+class FetchArticleRequest(BaseModel):
+    url: str = Field(min_length=1, max_length=2_000)
+
+
 # ---- Engine contract ----------------------------------------------------------
 
 
@@ -112,3 +116,10 @@ class PortfolioResult(BaseModel):
 class AnalyzeResponse(BaseModel):
     weights_adjusted: bool
     results: list[PortfolioResult]
+
+
+class Article(BaseModel):
+    url: str
+    title: str | None = None
+    text: str
+    truncated: bool = False
