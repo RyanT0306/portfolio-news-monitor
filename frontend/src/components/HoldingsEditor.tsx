@@ -1,0 +1,117 @@
+import { useEffect, useRef, useState } from "react";
+import { searchTickers, type HoldingInput, type TickerMatch } from "../lib/api";
+
+interface Props {
+  holdings: HoldingInput[];
+  onChange: (holdings: HoldingInput[]) => void;
+}
+
+const MAX_HOLDINGS = 30;
+
+export function HoldingsEditor({ holdings, onChange }: Props) {
+  const [names, setNames] = useState<Record<string, string>>({});
+  const [suggestions, setSuggestions] = useState<TickerMatch[]>([]);
+  const abort = useRef<AbortController | null>(null);
+
+  const remember = (matches: TickerMatch[]) =>
+    setNames((prev) => ({ ...prev, ...Object.fromEntries(matches.map((m) => [m.ticker, m.name])) }));
+
+  // Look up names for holdings restored from storage.
+  useEffect(() => {
+    holdings.forEach((h) => {
+      if (h.ticker && !names[h.ticker]) searchTickers(h.ticker).then(remember).catch(() => {});
+    });
+  }, []);
+
+  function lookup(q: string) {
+    abort.current?.abort();
+    if (!q.trim()) return setSuggestions([]);
+    const ctrl = new AbortController();
+    abort.current = ctrl;
+    searchTickers(q, ctrl.signal)
+      .then((m) => {
+        setSuggestions(m);
+        remember(m);
+      })
+      .catch(() => {});
+  }
+
+  const update = (i: number, patch: Partial<HoldingInput>) =>
+    onChange(holdings.map((h, j) => (j === i ? { ...h, ...patch } : h)));
+
+  const total = holdings.reduce((sum, h) => sum + (Number.isFinite(h.weight) ? h.weight : 0), 0);
+  const offBy = Math.abs(total - 100) > 0.5;
+
+  return (
+    <fieldset className="holdings">
+      <legend>Your holdings</legend>
+      <datalist id="asx-tickers">
+        {suggestions.map((s) => (
+          <option key={s.ticker} value={s.ticker}>
+            {s.name}
+          </option>
+        ))}
+      </datalist>
+      <div className="holdings-cols muted" aria-hidden="true">
+        <span>ASX code</span>
+        <span>Weight</span>
+      </div>
+      <ul>
+        {holdings.map((h, i) => (
+          <li key={i} className="holding-row">
+            <div className="ticker-cell">
+              <input
+                aria-label={`Holding ${i + 1} ASX code`}
+                list="asx-tickers"
+                value={h.ticker}
+                placeholder="BHP"
+                maxLength={8}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(e) => {
+                  const ticker = e.target.value.toUpperCase();
+                  update(i, { ticker });
+                  lookup(ticker);
+                }}
+              />
+              <span className="ticker-name muted">{names[h.ticker] ?? (h.ticker ? "Not in ASX list" : "")}</span>
+            </div>
+            <div className="weight-cell">
+              <input
+                aria-label={`Holding ${i + 1} weight in percent`}
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={100}
+                step={1}
+                value={Number.isFinite(h.weight) ? h.weight : ""}
+                onChange={(e) => update(i, { weight: e.target.value === "" ? NaN : Number(e.target.value) })}
+              />
+              <span aria-hidden="true">%</span>
+            </div>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={`Remove ${h.ticker || `holding ${i + 1}`}`}
+              onClick={() => onChange(holdings.filter((_, j) => j !== i))}
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="holdings-foot">
+        <button
+          type="button"
+          className="text-button"
+          onClick={() => holdings.length < MAX_HOLDINGS && onChange([...holdings, { ticker: "", weight: NaN }])}
+        >
+          Add holding
+        </button>
+        <span className={offBy ? "total total-off" : "total muted"}>
+          Total {Math.round(total * 10) / 10}%{offBy && ". We'll scale it to 100%."}
+        </span>
+      </div>
+    </fieldset>
+  );
+}

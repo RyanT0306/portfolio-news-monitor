@@ -1,0 +1,123 @@
+# Portfolio News Monitor
+
+Paste a news story, and see whether it's good or bad for **your** ASX portfolio, weighted by what you hold.
+
+Most sentiment tools tell you whether an article sounds positive. This one asks a narrower question: *given the
+companies I own and how much of each, does this story help or hurt me?* It scores every holding, drops the ones the
+story doesn't touch, and rolls the rest into one 0–100 reading on a gauge.
+
+![Light mode, FinBERT result for a CommBank story](docs/screenshot-light.jpg)
+
+## Two engines, side by side
+
+| | **Claude** | **FinBERT** |
+|---|---|---|
+| What it is | Anthropic's LLM, called through the API | [`ProsusAI/finbert`](https://huggingface.co/ProsusAI/finbert), a BERT model fine-tuned on financial text |
+| Cost | Pay per request, needs an API key | Free, runs on your machine |
+| How it decides relevance | Reasons about direct *and* indirect effects: commodity prices, rates, the dollar, suppliers, competitors | Only sentences that name the company (ticker, legal name, or a common alias like "CommBank") |
+| Extras | One-line reason per holding, summary, key points, risks, what to watch, time frame | The sentences it scored, quoted |
+
+You can run both at once and compare. The sample story **"Iron ore slides"** shows the difference well: it never
+names a company, so FinBERT finds nothing relevant, while Claude links falling iron ore prices to miners like BHP.
+
+## How the score works
+
+1. Each engine rates each holding as bullish, neutral, or bearish, as probabilities that add up to 100%.
+2. Holdings the story doesn't affect are left out, and the remaining weights are rescaled to add up to 100%.
+3. The portfolio probabilities are the weighted average of the holdings' probabilities.
+4. **Score = 50 + 50 × (bullish − bearish)**, so 0 is certainly bearish, 50 is balanced, and 100 is certainly bullish.
+
+| Score | Reading |
+|---|---|
+| 0–19 | Strongly bearish |
+| 20–39 | Bearish |
+| 40–60 | Neutral |
+| 61–80 | Bullish |
+| 81–100 | Strongly bullish |
+
+Alongside the score, the app shows **exposure**: the share of your portfolio the story actually touches. A strongly
+bearish story about a 5% holding is a very different thing from one about 60% of your money.
+
+The app shows this working for every result under "How this score was worked out".
+
+## Run it locally
+
+You need Python 3.11–3.13 and Node 20.19 or later. FinBERT depends on PyTorch, which doesn't support Python 3.14+ yet,
+so the steps below use [uv](https://docs.astral.sh/uv/) to create a Python 3.13 environment.
+
+**Backend** (port 8000):
+
+```bash
+cd backend
+uv venv --python 3.13
+uv pip install -e ".[finbert,dev]"
+cp .env.example .env          # add ANTHROPIC_API_KEY here to turn on Claude
+.venv/bin/uvicorn app.main:app --reload --port 8000
+```
+
+The first start downloads the FinBERT model (about 440 MB) in the background.
+
+**Frontend** (port 5173), in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:5173. The dev server forwards `/api` to the backend.
+
+### Turning on Claude
+
+Create an API key at [console.anthropic.com](https://console.anthropic.com), put it in `backend/.env` as
+`ANTHROPIC_API_KEY=...`, and restart the backend. Without a key the app works with FinBERT only. The default model is
+`claude-opus-5-5`; set `CLAUDE_MODEL` to use a different one.
+
+## Tests
+
+```bash
+cd backend && .venv/bin/pytest     # scoring, ASX matching, both engines (mocked), API
+cd frontend && npm test            # gauge geometry and zone boundaries
+```
+
+Backend tests don't download the model or call the API.
+
+## Project layout
+
+```
+backend/
+  app/aggregate.py          the scoring math above, as pure functions
+  app/asx.py                ASX company list, search, and "does this sentence name this company?"
+  app/engines/finbert_engine.py
+  app/engines/claude_engine.py
+  app/main.py               FastAPI routes: /api/health, /api/tickers, /api/analyze
+  data/asx_companies.csv    all ~2,050 ASX-listed companies
+  scripts/build_asx_list.py regenerates the CSV from asx.com.au
+frontend/
+  src/components/SentimentGauge.tsx   hand-built SVG gauge
+  src/lib/gauge.ts                    gauge geometry
+  src/App.tsx
+```
+
+## Design notes
+
+- **The backend checks every number from the LLM.** Claude answers in a fixed JSON schema
+  (structured outputs). Its probabilities are then clamped, rescaled to add up to 100%, and matched against the
+  tickers you actually sent. Unknown tickers are dropped, and missing ones count as unaffected.
+- **Tickers that double as words** (`CAR`, `WOW`, `ORG`, `ALL`, and others) only match with an exchange marker
+  (`ASX: CAR`, `CAR.AX`) or the company's name. Otherwise "every car sold" would count as news about CAR Group.
+- **Aliases are case-sensitive**, so "Origin said…" counts for Origin Energy but "the origin of the rally" doesn't.
+- Holdings and your last 20 analyses are saved in your browser only.
+
+The prompt rules (separate facts from inference, don't guess tickers, don't overstate one-off news, no price targets)
+were adapted from [tw_stock_news_ai_monitor](https://github.com/jordan5226/tw_stock_news_ai_monitor). The gauge was
+inspired by Stocktwits' sentiment meter.
+
+## Limitations
+
+- FinBERT reads tone sentence by sentence. It can't follow indirect effects or sarcasm, and it reads long sentences
+  only up to its 512-token limit.
+- Claude's probabilities are its own judgement, not calibrated forecasts.
+- The sample stories in the app are made up.
+
+**For research and education only. Not investment advice.**
