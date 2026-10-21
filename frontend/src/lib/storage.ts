@@ -2,6 +2,7 @@
 // blocked site data), so every access falls back quietly.
 
 import type { AnalyzeResponse, EngineName, HoldingInput } from "./api";
+import { mergeHistory } from "./history";
 
 const HOLDINGS_KEY = "pnm.holdings";
 const ENGINES_KEY = "pnm.engines";
@@ -49,7 +50,7 @@ export const loadHistory = () => read<HistoryEntry[]>(HISTORY_KEY, []);
 
 export function addHistory(entry: Omit<HistoryEntry, "id" | "at">): HistoryEntry[] {
   const full: HistoryEntry = { ...entry, id: crypto.randomUUID(), at: new Date().toISOString() };
-  const next = [full, ...loadHistory()].slice(0, HISTORY_LIMIT);
+  const next = mergeHistory(loadHistory(), full, HISTORY_LIMIT);
   write(HISTORY_KEY, next);
   return next;
 }

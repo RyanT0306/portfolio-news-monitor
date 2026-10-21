@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { searchTickers, type HoldingInput, type TickerMatch } from "../lib/api";
+import { tickersToLookUp } from "../lib/history";
 
 interface Props {
   holdings: HoldingInput[];
@@ -12,18 +13,22 @@ export function HoldingsEditor({ holdings, onChange }: Props) {
   const [names, setNames] = useState<Record<string, string>>({});
   const [suggestions, setSuggestions] = useState<TickerMatch[]>([]);
   const abort = useRef<AbortController | null>(null);
+  const requested = useRef(new Set<string>());
 
   const remember = (matches: TickerMatch[]) =>
     setNames((prev) => ({ ...prev, ...Object.fromEntries(matches.map((m) => [m.ticker, m.name])) }));
 
-  // Look up names for holdings restored from storage.
+  // Look up names for holdings set from outside, such as storage or a history entry.
+  const tickers = holdings.map((h) => h.ticker).join(",");
   useEffect(() => {
-    holdings.forEach((h) => {
-      if (h.ticker && !names[h.ticker]) searchTickers(h.ticker).then(remember).catch(() => {});
+    tickersToLookUp(holdings, requested.current).forEach((t) => {
+      requested.current.add(t);
+      searchTickers(t).then(remember).catch(() => {});
     });
-  }, []);
+  }, [tickers]);
 
   function lookup(q: string) {
+    requested.current.add(q.trim());
     abort.current?.abort();
     if (!q.trim()) return setSuggestions([]);
     const ctrl = new AbortController();

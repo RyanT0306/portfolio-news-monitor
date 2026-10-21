@@ -14,13 +14,13 @@
 | 項目 | 狀態 |
 |---|---|
 | 後端（FastAPI）| 完成，70 個 pytest 全部通過 |
-| 前端（Vite + React + TS）| 完成，17 個 Vitest 通過，`npm run build` 成功 |
+| 前端（Vite + React + TS）| 完成，28 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
 | 並排比較 | 在瀏覽器實測通過，切換按鈕正常 |
 | 手機版、亮色／暗色模式 | 實測通過，沒有水平捲動 |
 | README（含截圖）| 完成 |
-| git | 4 個 commit，工作區乾淨 |
+| 歷史紀錄 | 同一則新聞＋持股＋引擎只留最新一筆；引擎錯誤顯示「Error」（滑過看訊息），無關顯示「Unrelated」；還原後會補查公司名稱 |
 
 實測結果（持股 BHP 40／CBA 30／CSL 30）：
 
@@ -54,6 +54,7 @@ frontend/
   src/components/            SentimentGauge, ResultPanel, HoldingBreakdown, HoldingsEditor, HistoryList
   src/lib/gauge.ts(+test)    儀表盤幾何與分區
   src/lib/api.ts             型別與 fetch
+  src/lib/history.ts(+test)  歷史紀錄去重、分數顯示文字、待查公司名稱（純函式）
   src/lib/storage.ts         localStorage（持股、引擎選擇、最近 20 筆紀錄），存取都包 try/catch
   src/lib/examples.ts        3 則虛構範例新聞
   src/styles.css             設計 token、亮暗主題、RWD
@@ -102,9 +103,6 @@ README.md
 
 ## 6. 已知小問題與可以做的下一步（尚未做，等使用者決定）
 
-- `HoldingsEditor` 只在掛載時查一次公司名稱。從歷史紀錄還原新的 ticker 後，名稱可能顯示「Not in ASX list」，直到使用者修改為止。
-- 同一則新聞重複分析，歷史紀錄會出現重複項目，目前沒有去重。
-- 歷史紀錄中引擎錯誤也顯示為「n/a」，沒有和「無關」區分。
 - 開發模式的 React StrictMode 會讓請求發兩次，只發生在開發環境，不影響正式版。
 - Python 的 `round()` 是銀行家捨入（62.5 會變成 62），分數一律由後端計算，前端不重算。
 - 可能的功能延伸（計畫中列為非目標）：貼網址自動抓文章、部署上線（例如前端 Vercel、後端 Render 或 Hugging Face Spaces）、docker-compose、即時股價、更多範例新聞。

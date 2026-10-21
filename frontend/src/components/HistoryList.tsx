@@ -1,6 +1,6 @@
 import { ENGINE_NAMES } from "../lib/api";
-import { zoneFor } from "../lib/gauge";
 import { timeAgo } from "../lib/format";
+import { historyScore } from "../lib/history";
 import type { HistoryEntry } from "../lib/storage";
 
 interface Props {
@@ -26,14 +26,14 @@ export function HistoryList({ entries, onOpen, onClear }: Props) {
               <span className="history-text">{e.news.slice(0, 90)}</span>
               <span className="history-meta">
                 <span className="muted">{timeAgo(e.at)}</span>
-                {e.response.results.map((r) => (
-                  <span key={r.engine} className="history-score">
-                    {ENGINE_NAMES[r.engine]}{" "}
-                    <strong className={r.score !== null ? `tone-text-${zoneFor(r.score).tone}` : "muted"}>
-                      {r.score ?? "n/a"}
-                    </strong>
-                  </span>
-                ))}
+                {e.response.results.map((r) => {
+                  const s = historyScore(r);
+                  return (
+                    <span key={r.engine} className="history-score" title={s.title}>
+                      {ENGINE_NAMES[r.engine]} <strong className={s.className}>{s.text}</strong>
+                    </span>
+                  );
+                })}
               </span>
             </button>
           </li>

@@ -722,6 +722,13 @@ textarea {
   white-space: nowrap;
 }
 
+.history-error {
+  color: var(--muted);
+  font-style: italic;
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
 .history-meta {
   display: flex;
   gap: 0.875rem;
