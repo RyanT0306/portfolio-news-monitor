@@ -13,8 +13,8 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 後端（FastAPI）| 完成，105 個 pytest 全部通過 |
-| 前端（Vite + React + TS）| 完成，28 個 Vitest 通過，`npm run build` 成功 |
+| 後端（FastAPI）| 完成，139 個 pytest 全部通過 |
+| 前端（Vite + React + TS）| 完成，34 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
 | 並排比較 | 在瀏覽器實測通過，切換按鈕正常 |
@@ -87,7 +87,10 @@ README.md
 
 ### FinBERT 引擎
 - 使用 `ProsusAI/finbert`，`transformers` pipeline 搭配 `top_k=None`。伺服器啟動時在背景執行緒預先載入（`FINBERT_PRELOAD=1`），首次會下載約 440MB。
-- 先斷句，只對有提到該持股的句子做判斷，再取平均。比對規則在 `asx.mentions()`：
+- 先斷句，只對有提到該持股的句子做判斷，再取平均。`Ltd.`、`U.S.` 這類縮寫後面的句點不算句尾。
+- 一句話提到兩家以上持股時，在 while／but／whereas／although／分號處切開，每家只用提到自己的那段。
+- 超過 200 個字的段落只取第一次提到公司的前後各 100 個字，避免 FinBERT 的 512 token 上限把提及處截掉。
+- 比對規則在 `asx.mentions()`（`asx.find_mention()` 另外回傳位置）：
   - ticker 必須大寫、完整單字比對。
   - **容易和一般英文單字混淆的 ticker**（`CAR`、`WOW`、`ORG`、`ALL`、`ASX` 等，見 `_AMBIGUOUS_TICKERS`）必須帶交易所標記，例如 `ASX: CAR` 或 `CAR.AX`。
   - 公司名稱與別名**區分大小寫**，另外接受全大寫的標題寫法，例如「Origin」會比對，「origin」不會。直撇號與彎撇號（`'`／`’`）都算。
