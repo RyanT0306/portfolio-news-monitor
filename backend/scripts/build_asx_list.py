@@ -16,6 +16,7 @@ OUT = Path(__file__).resolve().parent.parent / "data" / "asx_companies.csv"
 
 # Everyday names the press uses that don't fall out of the legal name.
 ALIASES: dict[str, list[str]] = {
+    "A2M": ["a2 Milk", "A2 Milk"],
     "AGL": ["AGL Energy"],
     "ALL": ["Aristocrat"],
     "ALX": ["Atlas Arteria"],
@@ -37,6 +38,7 @@ ALIASES: dict[str, list[str]] = {
     "GMG": ["Goodman"],
     "IAG": ["Insurance Australia", "NRMA Insurance"],
     "JBH": ["JB Hi-Fi"],
+    "JHX": ["James Hardie"],
     "MIN": ["Mineral Resources", "MinRes"],
     "MPL": ["Medibank"],
     "MQG": ["Macquarie", "Macquarie Group"],

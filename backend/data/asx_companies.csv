@@ -24,7 +24,7 @@ ticker,name,industry,aliases
 A11,Atlantic Lithium Limited,Materials,
 A1M,AIC Mines Limited,Materials,
 A1N,ARN Media Limited,Media & Entertainment,
-A2M,The A2 Milk Company Limited,"Food, Beverage & Tobacco",
+A2M,The A2 Milk Company Limited,"Food, Beverage & Tobacco",a2 Milk|A2 Milk
 A3D,Aurora Labs Limited,Capital Goods,
 A4N,Alpha HPA Limited,Materials,
 A8G,Australasian Metals Limited,Materials,
@@ -991,7 +991,7 @@ JBH,JB Hi-Fi Limited,Consumer Discretionary Distribution & Retail,JB Hi-Fi
 JCS,Jcurve Solutions Ltd,Software & Services,
 JDO,Judo Capital Holdings Limited,Banks,
 JGH,Jade GAS Holdings Limited,Materials,
-JHX,James Hardie Industries PLC,Materials,
+JHX,James Hardie Industries PLC,Materials,James Hardie
 JIN,Jumbo Interactive Limited,Consumer Services,
 JLL,Jindalee Lithium Limited,Materials,
 JMS,Jupiter Mines Limited,Materials,

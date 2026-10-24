@@ -61,6 +61,11 @@ class TestMentions:
     def test_headline_in_all_caps(self):
         assert mentions("WOOLWORTHS PROFIT SLUMPS", holding("WOW"))
 
+    def test_short_names_the_press_uses(self):
+        assert mentions("James Hardie lifted guidance.", holding("JHX"))
+        assert mentions("a2 Milk shares jumped.", holding("A2M"))
+        assert mentions("A2 Milk shares jumped.", holding("A2M"))
+
     def test_name_matches_either_apostrophe(self):
         # The ASX list writes "Domino's"; news sites often use a curly apostrophe.
         dmp = holding("DMP")
