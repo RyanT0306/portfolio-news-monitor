@@ -145,6 +145,13 @@ async def test_bad_api_key_raises_a_readable_error():
         await ClaudeEngine(client=client).analyze(NEWS, HOLDINGS)
 
 
+async def test_timeout_is_not_reported_as_a_connection_problem():
+    # APITimeoutError is a subclass of APIConnectionError, so order matters.
+    client, _ = fake_client(anthropic.APITimeoutError(request=httpx.Request("POST", "https://api.anthropic.com")))
+    with pytest.raises(EngineError, match="too long"):
+        await ClaudeEngine(client=client).analyze(NEWS, HOLDINGS)
+
+
 def test_status_without_key_is_unavailable(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)

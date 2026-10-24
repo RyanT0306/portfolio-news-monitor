@@ -115,6 +115,8 @@ class ClaudeEngine:
             raise EngineError("Your Claude API key was rejected. Check ANTHROPIC_API_KEY.") from exc
         except anthropic.RateLimitError as exc:
             raise EngineError("Claude is rate-limited right now. Wait a moment and try again.") from exc
+        except anthropic.APITimeoutError as exc:  # before APIConnectionError, its parent class
+            raise EngineError("Claude took too long to answer. Try again in a moment.") from exc
         except anthropic.APIConnectionError as exc:
             raise EngineError("Couldn't reach the Claude API. Check your internet connection.") from exc
         except anthropic.APIStatusError as exc:
