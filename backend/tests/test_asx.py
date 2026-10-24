@@ -1,3 +1,5 @@
+import pytest
+
 from app.asx import core_name, get_company, mentions, resolve, search
 from app.models import HoldingIn, ResolvedHolding
 
@@ -74,6 +76,21 @@ class TestMentions:
         assert not mentions("Every CAR sold in Australia needs a VIN.", car)
         assert mentions("Shares of CAR Group (ASX: CAR) jumped.", car)
         assert mentions("CAR.AX rose 2%.", car)
+
+    @pytest.mark.parametrize(
+        "ticker,sentence",
+        [
+            ("AFL", "The AFL grand final drew a record crowd."),
+            ("NRL", "NRL ratings rose this season."),
+            ("ACT", "The ACT government announced a new budget."),
+            ("SPP", "The miner will raise $20 million through an SPP."),
+            ("CPU", "Nvidia said CPU demand was softening."),
+            ("SEC", "The SEC fined the broker."),
+        ],
+    )
+    def test_news_acronyms_need_exchange_prefix(self, ticker, sentence):
+        assert not mentions(sentence, holding(ticker))
+        assert mentions(f"Shares in (ASX: {ticker}) rose.", holding(ticker))
 
     def test_unknown_ticker_matches_only_by_ticker(self):
         h = ResolvedHolding(ticker="ZZZZ", weight=1.0)

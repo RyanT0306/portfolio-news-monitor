@@ -15,10 +15,11 @@ _LEGAL_SUFFIXES = {"limited", "ltd", "nl", "inc", "plc", "corporation", "corp", 
 # Tickers that double as English words or common acronyms. A bare match would
 # fire on ordinary text, so these only count with an exchange marker.
 _AMBIGUOUS_TICKERS = {
-    "AI", "AIR", "ALL", "AND", "ARE", "ASX", "BAD", "BIG", "BOT", "CAN", "CAR", "CAT", "CEO", "COL",
-    "CPI", "DIG", "DOG", "EAT", "ESG", "ETF", "EV", "FOR", "FUN", "GAS", "GDP", "GO", "HOT", "ICE",
-    "IPO", "IT", "JOB", "MAD", "MIN", "NEW", "NOW", "OIL", "ONE", "ORG", "PAY", "PET", "RBA", "RED",
-    "SEA", "SKY", "SUN", "TOP", "USA", "WIN", "WOW",
+    "ACT", "AFL", "AI", "AIR", "ALL", "AND", "ARE", "ARR", "ASX", "ATM", "BAD", "BBC", "BIG", "BOT",
+    "CAN", "CAR", "CAT", "CEO", "CIA", "CMO", "COL", "CPI", "CPU", "CTO", "DIG", "DOG", "DOW", "EAT",
+    "ESG", "ETF", "EV", "FOR", "FUN", "G20", "GAS", "GDP", "GO", "HOT", "ICE", "ICU", "IPO", "IT",
+    "JOB", "LED", "MAD", "MIN", "NEW", "NFL", "NOW", "NRL", "OIL", "ONE", "ORG", "PAY", "PET", "RAM",
+    "RBA", "RED", "SEA", "SEC", "SKY", "SMS", "SPP", "SPX", "SUN", "TOP", "USA", "WIN", "WOW",
 }
 
 
