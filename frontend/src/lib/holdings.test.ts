@@ -1,5 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { filledHoldings, weightTotal } from "./holdings";
+import { filledHoldings, holdingsProblem, weightTotal } from "./holdings";
+
+describe("holdingsProblem", () => {
+  it("accepts weights from just above 0 up to 100", () => {
+    expect(holdingsProblem([{ ticker: "BHP", weight: 0.1 }])).toBeNull();
+    expect(holdingsProblem([{ ticker: "BHP", weight: 100 }])).toBeNull();
+  });
+
+  it("rejects a weight above 100% before the server does", () => {
+    expect(holdingsProblem([{ ticker: "BHP", weight: 150 }])).toBe("Keep each weight at 100% or less.");
+  });
+
+  it("rejects missing, zero and duplicate entries", () => {
+    expect(holdingsProblem([{ ticker: "", weight: 50 }])).toBe("Add at least one holding.");
+    expect(holdingsProblem([{ ticker: "BHP", weight: 0 }])).toBe("Give every holding a weight above 0%.");
+    expect(holdingsProblem([{ ticker: "BHP", weight: NaN }])).toBe("Give every holding a weight above 0%.");
+    expect(
+      holdingsProblem([
+        { ticker: "BHP", weight: 50 },
+        { ticker: " BHP", weight: 50 },
+      ]),
+    ).toBe("Each ASX code can only appear once.");
+  });
+});
 
 describe("filledHoldings", () => {
   it("drops rows without an ASX code and trims the rest", () => {
