@@ -120,6 +120,26 @@ async def test_companies_in_the_same_clause_share_it():
     assert rio.bearish == pytest.approx(0.8)
 
 
+async def test_reason_warns_when_a_sentence_could_not_be_split():
+    engine = FinbertEngine(classifier=fake_classifier)
+    bhp, cba, csl = (await engine.analyze("BHP rose and CBA fell. CSL was flat.", holdings("BHP", "CBA", "CSL"))).per_holding
+
+    assert "also names CBA" in bhp.reason
+    assert "also names BHP" in cba.reason
+    assert "also names" not in csl.reason
+
+
+@pytest.mark.parametrize(
+    "news",
+    ["BHP shares rose, while CBA shares fell.", "BHP shares rose. CBA shares fell."],
+)
+async def test_no_warning_when_each_company_has_its_own_text(news):
+    engine = FinbertEngine(classifier=fake_classifier)
+    bhp, cba = (await engine.analyze(news, holdings("BHP", "CBA"))).per_holding
+    assert "also names" not in bhp.reason
+    assert "also names" not in cba.reason
+
+
 async def test_sentence_naming_one_company_is_not_split():
     calls = []
 

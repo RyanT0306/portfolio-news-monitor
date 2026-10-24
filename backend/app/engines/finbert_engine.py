@@ -129,6 +129,10 @@ class FinbertEngine:
             bear = sum(scores[s].get("negative", 0) for s in found) / n
             total = bull + neu + bear or 1.0
             bull, neu, bear = bull / total, neu / total, bear / total
+            reason = " ".join(f"“{_clip(s)}”" for s in found[:_MAX_QUOTED])
+            # Text that still names another holding couldn't be split, so its tone may belong to either.
+            if others := [o.ticker for o in holdings if o is not h and any(mentions(s, o) for s in found)]:
+                reason += f" A sentence used here also names {', '.join(others)}, so FinBERT may have mixed up their news."
             per_holding.append(
                 HoldingSentiment(
                     ticker=h.ticker,
@@ -136,7 +140,7 @@ class FinbertEngine:
                     bullish=bull,
                     neutral=neu,
                     bearish=bear,
-                    reason=" ".join(f"“{_clip(s)}”" for s in found[:_MAX_QUOTED]),
+                    reason=reason,
                     confidence=round(max(bull, neu, bear) * 100),
                 )
             )

@@ -88,7 +88,7 @@ README.md
 ### FinBERT 引擎
 - 使用 `ProsusAI/finbert`，`transformers` pipeline 搭配 `top_k=None`。伺服器啟動時在背景執行緒預先載入（`FINBERT_PRELOAD=1`），首次會下載約 440MB。
 - 先斷句，只對有提到該持股的句子做判斷，再取平均。`Ltd.`、`U.S.` 這類縮寫後面的句點不算句尾。
-- 一句話提到兩家以上持股時，在 while／but／whereas／although／分號處切開，每家只用提到自己的那段。
+- 一句話提到兩家以上持股時，在 while／but／whereas／although／分號處切開，每家只用提到自己的那段。切不開時（例如「BHP rose and CBA fell」），原因後面會加一句提醒，說明這句也提到哪家持股、分數可能混在一起。不改用 LLM 切句是使用者 2026-10-24 的決定，目的是讓 FinBERT 維持免費、在本機執行。
 - 超過 200 個字的段落只取第一次提到公司的前後各 100 個字，避免 FinBERT 的 512 token 上限把提及處截掉。
 - 比對規則在 `asx.mentions()`（`asx.find_mention()` 另外回傳位置）：
   - ticker 必須大寫、完整單字比對。
