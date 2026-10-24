@@ -134,8 +134,14 @@ def _clamp(v: int, lo: int = 0, hi: int = 100) -> int:
     return max(lo, min(hi, v))
 
 
+def _bare_ticker(ticker: str) -> str:
+    """'BHP.AX' and 'ASX: BHP' -> 'BHP', matching how holdings are stored."""
+    t = ticker.strip().upper().removesuffix(".AX")
+    return t.removeprefix("ASX:").strip()
+
+
 def _to_result(parsed: ClaudeAnalysis, holdings: list[ResolvedHolding]) -> EngineResult:
-    by_ticker = {h.ticker.strip().upper(): h for h in parsed.holdings}
+    by_ticker = {_bare_ticker(h.ticker): h for h in parsed.holdings}
     per_holding = []
     for h in holdings:
         c = by_ticker.get(h.ticker)

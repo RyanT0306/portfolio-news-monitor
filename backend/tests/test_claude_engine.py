@@ -79,6 +79,14 @@ async def test_unknown_tickers_are_dropped_and_missing_ones_marked_unrelated():
     assert result.per_holding[1].relevant is False
 
 
+@pytest.mark.parametrize("bhp_as", ["BHP.AX", "ASX:BHP", "ASX: BHP", " bhp "])
+async def test_tickers_written_with_exchange_marker_still_match(bhp_as):
+    client, _ = fake_client(reply(analysis(ch(bhp_as, bear=100, neu=0), ch("CBA"))))
+    bhp, _ = (await ClaudeEngine(client=client).analyze(NEWS, HOLDINGS)).per_holding
+    assert bhp.relevant is True
+    assert bhp.bearish == 1.0
+
+
 async def test_confidence_is_clamped():
     client, _ = fake_client(reply(analysis(ch("BHP", confidence=150), ch("CBA", confidence=-5))))
     bhp, cba = (await ClaudeEngine(client=client).analyze(NEWS, HOLDINGS)).per_holding
