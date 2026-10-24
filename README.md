@@ -34,6 +34,7 @@ redirect.
 2. Holdings the story doesn't affect are left out, and the remaining weights are rescaled to add up to 100%.
 3. The portfolio probabilities are the weighted average of the holdings' probabilities.
 4. **Score = 50 + 50 × (bullish − bearish)**, so 0 is certainly bearish, 50 is balanced, and 100 is certainly bullish.
+   It's rounded to a whole number with halves rounding up, so 60.5 is 61 (Bullish).
 
 | Score | Reading |
 |---|---|
@@ -85,7 +86,7 @@ Create an API key at [console.anthropic.com](https://console.anthropic.com), put
 
 ```bash
 cd backend && .venv/bin/pytest     # scoring, ASX matching, both engines (mocked), article fetching (mocked), API
-cd frontend && npm test            # gauge geometry and zone boundaries
+cd frontend && npm test            # gauge zones, holdings checks, history, skipped-holding notices
 ```
 
 Backend tests don't download the model or call the API.
@@ -112,10 +113,15 @@ frontend/
 
 - **The backend checks every number from the LLM.** Claude answers in a fixed JSON schema
   (structured outputs). Its probabilities are then clamped, rescaled to add up to 100%, and matched against the
-  tickers you actually sent. Unknown tickers are dropped, and missing ones count as unaffected.
-- **Tickers that double as words** (`CAR`, `WOW`, `ORG`, `ALL`, and others) only match with an exchange marker
-  (`ASX: CAR`, `CAR.AX`) or the company's name. Otherwise "every car sold" would count as news about CAR Group.
+  tickers you actually sent. Unknown tickers are dropped. A holding Claude leaves out is marked "Not assessed",
+  kept out of the score, and named in a notice, rather than shown as unaffected.
+- **Tickers that double as words or news acronyms** (`CAR`, `WOW`, `ORG`, `AFL`, `NRL`, `SPP`, and others) only match
+  with an exchange marker (`ASX: CAR`, `CAR.AX`) or the company's name. Otherwise "every car sold" would count as news
+  about CAR Group.
 - **Aliases are case-sensitive**, so "Origin said…" counts for Origin Energy but "the origin of the rally" doesn't.
+  Places and events that share a company's name, such as "State of Origin" or "Port Macquarie", are ignored.
+- **FinBERT scores each company on its own clause.** "BHP surged, while CBA plunged" is split at "while", so BHP
+  reads bullish and CBA bearish instead of both getting the same score.
 - Holdings and your last 20 analyses are saved in your browser only.
 
 The prompt rules (separate facts from inference, don't guess tickers, don't overstate one-off news, no price targets)
@@ -124,8 +130,10 @@ inspired by Stocktwits' sentiment meter.
 
 ## Limitations
 
-- FinBERT reads tone sentence by sentence. It can't follow indirect effects or sarcasm, and it reads long sentences
-  only up to its 512-token limit.
+- FinBERT reads tone sentence by sentence. It can't follow indirect effects or sarcasm. When a sentence names two
+  holdings with no word like "while" or "but" to split on ("BHP rose and CBA fell"), both get the same score, and the
+  reason says so. Very long sentences are cut to the words around the company's name to fit its 512-token limit.
+- Name matching can't tell people from companies, so "analyst Sarah Goodman" counts as a mention of Goodman Group.
 - Claude's probabilities are its own judgement, not calibrated forecasts.
 - The sample stories in the app are made up.
 
