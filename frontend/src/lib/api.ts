@@ -13,6 +13,7 @@ export interface HoldingScore {
   name: string | null;
   weight: number;
   relevant: boolean;
+  assessed?: boolean; // missing in history saved before it existed
   effective_weight: number;
   bullish: number | null;
   neutral: number | null;

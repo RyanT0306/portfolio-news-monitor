@@ -76,7 +76,11 @@ async def test_unknown_tickers_are_dropped_and_missing_ones_marked_unrelated():
     client, _ = fake_client(reply(analysis(ch("BHP", bear=100, neu=0), ch("XYZ", bull=100, neu=0))))
     result = await ClaudeEngine(client=client).analyze(NEWS, HOLDINGS)
     assert [h.ticker for h in result.per_holding] == ["BHP", "CBA"]
-    assert result.per_holding[1].relevant is False
+    bhp, cba = result.per_holding
+    assert cba.relevant is False
+    # Left out is not the same as judged unrelated.
+    assert bhp.assessed is True
+    assert cba.assessed is False
 
 
 @pytest.mark.parametrize("bhp_as", ["BHP.AX", "ASX:BHP", "ASX: BHP", " bhp "])

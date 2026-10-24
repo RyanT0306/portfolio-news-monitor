@@ -168,7 +168,11 @@ def _to_result(parsed: ClaudeAnalysis, holdings: list[ResolvedHolding]) -> Engin
     for h in holdings:
         c = by_ticker.get(h.ticker)
         if c is None:
-            per_holding.append(HoldingSentiment(ticker=h.ticker, relevant=False, reason="Not assessed."))
+            per_holding.append(
+                HoldingSentiment(
+                    ticker=h.ticker, relevant=False, assessed=False, reason="Claude left this holding out of its answer."
+                )
+            )
             continue
         bull, neu, bear = (_clamp(c.bullish), _clamp(c.neutral), _clamp(c.bearish))
         total = bull + neu + bear

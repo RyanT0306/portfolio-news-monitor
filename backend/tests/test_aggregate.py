@@ -128,6 +128,18 @@ class TestAggregate:
 
         assert out.score == 100
         assert out.holdings[1].relevant is False
+        assert out.holdings[1].assessed is False
+
+    def test_skipped_holding_is_marked_and_left_out_of_the_score(self):
+        holdings = resolved(("BHP", 0.5), ("CBA", 0.5))
+        skipped = HoldingSentiment(ticker="CBA", relevant=False, assessed=False)
+        out = aggregate("claude", holdings, EngineResult(per_holding=[sentiment("BHP", bull=1.0, neu=0.0), skipped]))
+
+        bhp, cba = out.holdings
+        assert bhp.assessed is True
+        assert cba.assessed is False and cba.effective_weight == 0
+        assert out.score == 100
+        assert out.exposure == pytest.approx(0.5)
 
     def test_engine_extras_are_passed_through(self):
         holdings = resolved(("BHP", 1.0))

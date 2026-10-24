@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ENGINE_NAMES, type AnalyzeResponse, type EngineName, type PortfolioResult } from "../lib/api";
+import { skippedNotice } from "../lib/assessment";
 import { zoneFor } from "../lib/gauge";
 import { pct, signedPct } from "../lib/format";
 import { HoldingBreakdown, ProbabilityBar } from "./HoldingBreakdown";
@@ -66,11 +67,16 @@ function ResultBody({ result, weightsAdjusted }: { result: PortfolioResult; weig
     );
   }
 
+  const skipped = skippedNotice(result);
+
   if (result.status === "unrelated") {
     return (
       <>
         <SentimentGauge score={null} caption="Not related" />
-        <p className="result-empty">This story doesn't touch any of your holdings.</p>
+        <p className="result-empty">
+          {skipped ? "This story doesn't touch any of the holdings that were assessed." : "This story doesn't touch any of your holdings."}
+        </p>
+        {skipped && <p className="notice">{skipped}</p>}
         {result.engine === "finbert" && (
           <p className="notice">
             FinBERT only counts companies the article names. Claude can also pick up indirect effects, such as
@@ -106,6 +112,7 @@ function ResultBody({ result, weightsAdjusted }: { result: PortfolioResult; weig
           Affects <strong>{pct(result.exposure)}</strong> of your portfolio ({related} of {result.holdings.length}{" "}
           holdings). Holdings the story doesn't touch are left out of the score.
         </p>
+        {skipped && <p className="notice">{skipped}</p>}
         {weightsAdjusted && <p className="notice">Your weights didn't add up to 100%, so they were scaled to fit.</p>}
       </div>
 

@@ -51,7 +51,8 @@ def aggregate(engine: EngineName, holdings: list[ResolvedHolding], result: Engin
         if s is None or not s.relevant or related_weight == 0:
             rows.append(
                 HoldingScore(
-                    ticker=h.ticker, name=h.name, weight=h.weight, relevant=False, effective_weight=0.0,
+                    ticker=h.ticker, name=h.name, weight=h.weight, relevant=False,
+                    assessed=s.assessed if s else False, effective_weight=0.0,
                     bullish=None, neutral=None, bearish=None, score=None, label=None,
                     reason=s.reason if s else "", confidence=s.confidence if s else None,
                 )
@@ -65,7 +66,7 @@ def aggregate(engine: EngineName, holdings: list[ResolvedHolding], result: Engin
         score = score_from_probs(s.bullish, s.bearish)
         rows.append(
             HoldingScore(
-                ticker=h.ticker, name=h.name, weight=h.weight, relevant=True, effective_weight=w,
+                ticker=h.ticker, name=h.name, weight=h.weight, relevant=True, assessed=True, effective_weight=w,
                 bullish=s.bullish, neutral=s.neutral, bearish=s.bearish, score=score, label=label_for(score),
                 reason=s.reason, confidence=s.confidence,
             )

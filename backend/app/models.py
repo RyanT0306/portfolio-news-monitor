@@ -61,6 +61,7 @@ class HoldingSentiment(BaseModel):
 
     ticker: str
     relevant: bool
+    assessed: bool = True  # False when the engine left this holding out of its answer
     bullish: float = 0.0
     neutral: float = 1.0
     bearish: float = 0.0
@@ -85,6 +86,7 @@ class HoldingScore(BaseModel):
     name: str | None
     weight: float
     relevant: bool
+    assessed: bool
     effective_weight: float
     bullish: float | None
     neutral: float | None

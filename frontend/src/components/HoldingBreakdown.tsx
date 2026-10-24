@@ -1,4 +1,5 @@
 import type { HoldingScore } from "../lib/api";
+import { notScoredLabel } from "../lib/assessment";
 import { zoneFor } from "../lib/gauge";
 import { pct } from "../lib/format";
 
@@ -33,7 +34,7 @@ export function HoldingBreakdown({ holdings }: { holdings: HoldingScore[] }) {
                 <strong>{h.score}</strong> {h.label}
               </div>
             ) : (
-              <div className="holding-score muted">Not affected</div>
+              <div className="holding-score muted">{notScoredLabel(h)}</div>
             )}
           </div>
           {h.relevant && h.bullish !== null && h.neutral !== null && h.bearish !== null && (

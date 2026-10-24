@@ -13,8 +13,8 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 後端（FastAPI）| 完成，154 個 pytest 全部通過 |
-| 前端（Vite + React + TS）| 完成，34 個 Vitest 通過，`npm run build` 成功 |
+| 後端（FastAPI）| 完成，156 個 pytest 全部通過 |
+| 前端（Vite + React + TS）| 完成，39 個 Vitest 通過，`npm run build` 成功 |
 | FinBERT 模式 | 在瀏覽器實測通過 |
 | Claude 模式 | 用真實 API 實測通過，每次約 10 秒 |
 | 並排比較 | 在瀏覽器實測通過，切換按鈕正常 |
@@ -83,7 +83,7 @@ README.md
 - 模型預設 `claude-opus-5-5`，可用 `CLAUDE_MODEL` 覆蓋。anthropic SDK 版本是 1.17.0。
 - Schema 刻意不放數值上下限，改在後端 clamp 並重新正規化。不在輸入清單內的 ticker 丟掉，缺少的 ticker 視為無關。
 - `stop_reason == "refusal"` 會丟出 EngineError；`parsed_output` 為 None，或回答裡沒有任何一檔輸入的持股時，重試 1 次，再失敗就顯示錯誤（不會顯示成 Unrelated）。
-- Claude 回傳的 ticker 會先去掉 `.AX`、`ASX:` 再比對。
+- Claude 回傳的 ticker 會先去掉 `.AX`、`ASX:` 再比對。漏掉的持股標成 `assessed=false`，一樣不算進分數，但畫面顯示「Not assessed」並在結果上方提醒，不會說成「Not affected」。舊的歷史紀錄沒有這個欄位，前端視為 `true`。
 - API 錯誤各有訊息：逾時、連線失敗、key 錯誤、限流、5xx／529（忙碌）、404（`CLAUDE_MODEL` 打錯）；其他 4xx 附上 API 自己的說明。
 - System prompt 的分析紀律參考 `jordan5226/tw_stock_news_ai_monitor`：區分事實與推論、間接影響要寫出管道、不確定就判為無關、不誇大一次性消息、不給目標價。
 
