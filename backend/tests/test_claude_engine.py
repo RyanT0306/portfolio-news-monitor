@@ -180,6 +180,13 @@ def test_status_without_key_is_unavailable(monkeypatch):
     assert ClaudeEngine().status() == "unavailable"
 
 
+def test_client_retries_once_so_a_timeout_fails_within_two_minutes(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    client = ClaudeEngine()._get_client()
+    assert client.timeout == 60
+    assert client.max_retries == 1
+
+
 def test_status_with_key_is_ready(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     assert ClaudeEngine().status() == "ready"

@@ -78,7 +78,9 @@ class ClaudeEngine:
         if self._client is None:
             if self.status() == "unavailable":
                 raise EngineError("Claude isn't set up. Add ANTHROPIC_API_KEY to backend/.env and restart the server.")
-            self._client = anthropic.AsyncAnthropic(timeout=60, max_retries=2)
+            # One retry covers a brief overload. More would keep a timed-out request
+            # on screen for three minutes or so before the user sees an error.
+            self._client = anthropic.AsyncAnthropic(timeout=60, max_retries=1)
         return self._client
 
     async def analyze(self, news: str, holdings: list[ResolvedHolding]) -> EngineResult:
