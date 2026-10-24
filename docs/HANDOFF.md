@@ -90,7 +90,8 @@ README.md
 - 先斷句，只對有提到該持股的句子做判斷，再取平均。比對規則在 `asx.mentions()`：
   - ticker 必須大寫、完整單字比對。
   - **容易和一般英文單字混淆的 ticker**（`CAR`、`WOW`、`ORG`、`ALL`、`ASX` 等，見 `_AMBIGUOUS_TICKERS`）必須帶交易所標記，例如 `ASX: CAR` 或 `CAR.AX`。
-  - 公司名稱與別名**區分大小寫**，另外接受全大寫的標題寫法，例如「Origin」會比對，「origin」不會。
+  - 公司名稱與別名**區分大小寫**，另外接受全大寫的標題寫法，例如「Origin」會比對，「origin」不會。直撇號與彎撇號（`'`／`’`）都算。
+  - **長得像公司名的地名與賽事**（`_LOOKALIKES`，例如 `State of Origin`、`Port Macquarie`、`Rio de Janeiro`、`Santos FC`）會先從文字中挖掉再比對，所以同一句裡真的提到公司時仍然算。這份清單只能逐條補。已知擋不到：人名（例如「Sarah Goodman」會比對到 Goodman Group）、沒寫 FC 的球隊名（「Santos beat Corinthians」）。
 
 ## 5. 環境注意事項（很重要）
 

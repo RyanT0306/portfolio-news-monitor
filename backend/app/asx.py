@@ -22,6 +22,15 @@ _AMBIGUOUS_TICKERS = {
     "RBA", "RED", "SEA", "SEC", "SKY", "SMS", "SPP", "SPX", "SUN", "TOP", "USA", "WIN", "WOW",
 }
 
+# Places and events that contain a company's name but aren't about it. They're
+# blanked out before matching, so "Origin Energy sponsors State of Origin" still counts.
+_LOOKALIKES = {
+    "MQG": ("Port Macquarie", "Lake Macquarie", "Macquarie University", "Macquarie Street"),
+    "ORG": ("State of Origin",),
+    "RIO": ("Rio de Janeiro",),
+    "STO": ("Santos FC",),
+}
+
 
 @dataclass(frozen=True)
 class Company:
@@ -101,7 +110,15 @@ def _ticker_pattern(ticker: str) -> re.Pattern[str]:
     return re.compile(rf"{prefixed}|(?<![\w]){t}(?![\w])")
 
 
+@cache
+def _lookalike_pattern(ticker: str) -> re.Pattern[str] | None:
+    phrases = _LOOKALIKES.get(ticker)
+    return re.compile("|".join(map(re.escape, phrases)), re.IGNORECASE) if phrases else None
+
+
 def mentions(text: str, holding: ResolvedHolding) -> bool:
+    if lookalikes := _lookalike_pattern(holding.ticker):
+        text = lookalikes.sub(" ", text)
     if _ticker_pattern(holding.ticker).search(text):
         return True
     return any(_term_pattern(term).search(text) for term in holding.aliases)

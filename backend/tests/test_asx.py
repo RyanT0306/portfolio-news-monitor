@@ -97,6 +97,22 @@ class TestMentions:
         assert not mentions(sentence, holding(ticker))
         assert mentions(f"Shares in (ASX: {ticker}) rose.", holding(ticker))
 
+    @pytest.mark.parametrize(
+        "ticker,sentence",
+        [
+            ("ORG", "Queensland won the State of Origin decider."),
+            ("MQG", "Floods hit Port Macquarie overnight."),
+            ("RIO", "Protests spread across Rio de Janeiro."),
+            ("RIO", "RIO DE JANEIRO BRACES FOR STORM"),
+            ("STO", "Santos FC beat Corinthians on Sunday."),
+        ],
+    )
+    def test_places_and_events_named_like_a_company(self, ticker, sentence):
+        assert not mentions(sentence, holding(ticker))
+
+    def test_real_mention_next_to_a_lookalike_still_counts(self):
+        assert mentions("Origin Energy sponsors State of Origin.", holding("ORG"))
+
     def test_unknown_ticker_matches_only_by_ticker(self):
         h = ResolvedHolding(ticker="ZZZZ", weight=1.0)
         assert mentions("ZZZZ announced a capital raise.", h)
