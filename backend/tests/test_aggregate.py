@@ -33,10 +33,25 @@ class TestNormalizeWeights:
 class TestScore:
     @pytest.mark.parametrize(
         "bull,bear,expected",
-        [(0, 0, 50), (1, 0, 100), (0, 1, 0), (0.09, 0.71, 19), (0.5, 0.25, 62)],
+        [(0, 0, 50), (1, 0, 100), (0, 1, 0), (0.09, 0.71, 19), (0.5, 0.25, 63)],
     )
     def test_score_from_probs(self, bull, bear, expected):
         assert score_from_probs(bull, bear) == expected
+
+    @pytest.mark.parametrize(
+        "bull,bear,expected,label",
+        [
+            (0.21, 0, 61, "Bullish"),  # 60.5
+            (0.61, 0, 81, "Strongly bullish"),  # 80.5
+            (0.03, 0.42, 31, "Bearish"),  # 30.5
+            (0, 0.21, 40, "Neutral"),  # 39.5
+            (0, 0.61, 20, "Bearish"),  # 19.5
+            (0, 0.55, 23, "Bearish"),  # 22.5, which floats compute as 22.4999...
+        ],
+    )
+    def test_halves_round_up(self, bull, bear, expected, label):
+        assert score_from_probs(bull, bear) == expected
+        assert label_for(score_from_probs(bull, bear)) == label
 
     @pytest.mark.parametrize(
         "score,label",

@@ -5,8 +5,10 @@ The math is deliberately simple so it can be shown on screen:
 1. Holdings the news doesn't touch are dropped.
 2. The remaining weights are rescaled to sum to 1.
 3. Portfolio probabilities are the weighted average of holding probabilities.
-4. score = 50 + 50 * (bullish - bearish), on a 0-100 scale.
+4. score = 50 + 50 * (bullish - bearish), on a 0-100 scale, halves rounding up.
 """
+
+import math
 
 from .models import EngineName, EngineResult, HoldingIn, HoldingScore, Label, PortfolioResult, ResolvedHolding
 
@@ -21,7 +23,9 @@ def normalize_weights(holdings: list[HoldingIn]) -> tuple[list[float], bool]:
 
 
 def score_from_probs(bullish: float, bearish: float) -> int:
-    return round(50 + 50 * (bullish - bearish))
+    # Halves round up (60.5 -> 61). Python's round() would send them to the even
+    # neighbour, and float noise can turn 22.5 into 22.4999..., hence round(..., 9) first.
+    return math.floor(round(50 + 50 * (bullish - bearish), 9) + 0.5)
 
 
 def label_for(score: int) -> Label:
