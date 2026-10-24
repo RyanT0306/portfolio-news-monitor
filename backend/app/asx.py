@@ -86,7 +86,8 @@ def resolve(holdings: list[HoldingIn], weights: list[float]) -> list[ResolvedHol
 def _term_pattern(term: str) -> re.Pattern[str]:
     # Case-sensitive on purpose: "Origin" the company, not "origin" the word.
     # The all-caps form covers headlines.
-    alternatives = {re.escape(term), re.escape(term.upper())}
+    # Either apostrophe counts: "Domino's" and "Domino’s".
+    alternatives = {re.escape(t.replace("’", "'")).replace("'", "['’]") for t in (term, term.upper())}
     return re.compile(r"(?<![\w])(?:" + "|".join(alternatives) + r")(?![\w])")
 
 

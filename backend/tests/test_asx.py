@@ -59,6 +59,12 @@ class TestMentions:
     def test_headline_in_all_caps(self):
         assert mentions("WOOLWORTHS PROFIT SLUMPS", holding("WOW"))
 
+    def test_name_matches_either_apostrophe(self):
+        # The ASX list writes "Domino's"; news sites often use a curly apostrophe.
+        dmp = holding("DMP")
+        assert mentions("Domino’s Pizza Enterprises cut its forecast.", dmp)
+        assert mentions("Domino's Pizza Enterprises cut its forecast.", dmp)
+
     def test_alias_that_is_an_english_word_needs_capitals(self):
         assert mentions("Origin said gas output rose.", holding("ORG"))
         assert not mentions("The origin of the rally is unclear.", holding("ORG"))
