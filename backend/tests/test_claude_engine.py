@@ -124,6 +124,19 @@ async def test_unparseable_output_twice_raises():
         await ClaudeEngine(client=client).analyze(NEWS, HOLDINGS)
 
 
+async def test_answer_covering_no_holdings_is_retried():
+    client, messages = fake_client(reply(analysis()), reply(analysis(ch("BHP"), ch("CBA"))))
+    await ClaudeEngine(client=client).analyze(NEWS, HOLDINGS)
+    assert len(messages.calls) == 2
+
+
+async def test_answer_covering_no_holdings_twice_is_an_error_not_unrelated():
+    # Otherwise the result would read "Unrelated", as if Claude had judged the article.
+    client, _ = fake_client(reply(analysis(ch("XYZ"))), reply(analysis()))
+    with pytest.raises(EngineError, match="didn't match"):
+        await ClaudeEngine(client=client).analyze(NEWS, HOLDINGS)
+
+
 async def test_bad_api_key_raises_a_readable_error():
     request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
     err = anthropic.AuthenticationError("bad key", response=httpx.Response(401, request=request), body=None)

@@ -86,13 +86,14 @@ class ClaudeEngine:
         prompt = _user_prompt(news, holdings)
 
         parsed = None
-        for _ in range(2):  # one retry if the output doesn't fit the schema
+        for _ in range(2):  # one retry if the output doesn't fit the schema or skips every holding
             response = await self._call(client, prompt)
             if response.stop_reason == "refusal":
                 raise EngineError("Claude declined to analyze this article.")
             parsed = response.parsed_output
-            if parsed is not None:
+            if parsed is not None and _covers_any(parsed, holdings):
                 break
+            parsed = None
         if parsed is None:
             raise EngineError("Claude's answer didn't match the expected format. Try again.")
 
@@ -138,6 +139,11 @@ def _bare_ticker(ticker: str) -> str:
     """'BHP.AX' and 'ASX: BHP' -> 'BHP', matching how holdings are stored."""
     t = ticker.strip().upper().removesuffix(".AX")
     return t.removeprefix("ASX:").strip()
+
+
+def _covers_any(parsed: ClaudeAnalysis, holdings: list[ResolvedHolding]) -> bool:
+    returned = {_bare_ticker(c.ticker) for c in parsed.holdings}
+    return any(h.ticker in returned for h in holdings)
 
 
 def _to_result(parsed: ClaudeAnalysis, holdings: list[ResolvedHolding]) -> EngineResult:
