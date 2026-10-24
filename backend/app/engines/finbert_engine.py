@@ -28,6 +28,22 @@ _ABBREVIATIONS = {"co", "corp", "dr", "inc", "jr", "ltd", "mr", "mrs", "ms", "mt
 _INITIALS = re.compile(r"(?:[A-Za-z]\.)+")  # U.S., J.P.
 
 
+# Where a sentence turns from one company to another. The conjunction stays
+# with the clause that follows it.
+_CLAUSE_BREAK = re.compile(r"\s*;\s*|,?\s+(?=(?:while|but|whereas|although)\b)", re.IGNORECASE)
+
+
+def _passage(sentence: str, holding: ResolvedHolding, holdings: list[ResolvedHolding]) -> str:
+    """The part of a sentence to score for one holding.
+
+    "BHP surged, while CBA plunged" would otherwise give both the same score.
+    """
+    if not any(o is not holding and mentions(sentence, o) for o in holdings):
+        return sentence
+    mine = [c.strip() for c in _CLAUSE_BREAK.split(sentence) if mentions(c, holding)]
+    return " ".join(mine) if mine else sentence
+
+
 def _ends_with_abbreviation(fragment: str) -> bool:
     last = fragment.split()[-1].lstrip("\"'“‘(")
     return last.rstrip(".").lower() in _ABBREVIATIONS or bool(_INITIALS.fullmatch(last))
@@ -78,7 +94,7 @@ class FinbertEngine:
 
     def _analyze_sync(self, news: str, holdings: list[ResolvedHolding]) -> EngineResult:
         sentences = split_sentences(news)
-        hits = {h.ticker: [s for s in sentences if mentions(s, h)] for h in holdings}
+        hits = {h.ticker: [_passage(s, h, holdings) for s in sentences if mentions(s, h)] for h in holdings}
         to_score = list(dict.fromkeys(s for found in hits.values() for s in found))
 
         scores: dict[str, dict[str, float]] = {}

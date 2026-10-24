@@ -96,6 +96,42 @@ async def test_each_sentence_is_classified_once():
     assert calls == [["BHP and Rio Tinto fell."]]
 
 
+@pytest.mark.parametrize(
+    "news",
+    [
+        "BHP shares rose to a record, while CBA shares fell after a warning.",
+        "BHP shares rose to a record but CBA shares fell after a warning.",
+        "BHP shares rose to a record; CBA shares fell after a warning.",
+    ],
+)
+async def test_each_company_is_scored_on_its_own_clause(news):
+    engine = FinbertEngine(classifier=fake_classifier)
+    bhp, cba = (await engine.analyze(news, holdings("BHP", "CBA"))).per_holding
+
+    assert bhp.bullish == pytest.approx(0.7)
+    assert cba.bearish == pytest.approx(0.8)
+    assert "CBA" not in bhp.reason
+
+
+async def test_companies_in_the_same_clause_share_it():
+    engine = FinbertEngine(classifier=fake_classifier)
+    bhp, rio = (await engine.analyze("BHP and Rio Tinto fell, while gold rose.", holdings("BHP", "RIO"))).per_holding
+    assert bhp.bearish == pytest.approx(0.8)
+    assert rio.bearish == pytest.approx(0.8)
+
+
+async def test_sentence_naming_one_company_is_not_split():
+    calls = []
+
+    def counting(sentences):
+        calls.append(list(sentences))
+        return fake_classifier(sentences)
+
+    engine = FinbertEngine(classifier=counting)
+    await engine.analyze("BHP fell, while the broader market rose.", holdings("BHP", "CBA"))
+    assert calls == [["BHP fell, while the broader market rose."]]
+
+
 async def test_no_mentions_skips_the_model():
     def boom(_):
         raise AssertionError("classifier should not run")
