@@ -13,6 +13,7 @@ import {
   type HoldingInput,
 } from "./lib/api";
 import { EXAMPLES } from "./lib/examples";
+import { filledHoldings } from "./lib/holdings";
 import {
   addHistory,
   clearHistory,
@@ -33,10 +34,10 @@ const ENGINE_HINTS: Record<EngineName, string> = {
 };
 
 function validate(holdings: HoldingInput[], news: string, engines: EngineName[]): string | null {
-  const filled = holdings.filter((h) => h.ticker.trim());
+  const filled = filledHoldings(holdings);
   if (!filled.length) return "Add at least one holding.";
   if (filled.some((h) => !Number.isFinite(h.weight) || h.weight <= 0)) return "Give every holding a weight above 0%.";
-  const tickers = filled.map((h) => h.ticker.trim());
+  const tickers = filled.map((h) => h.ticker);
   if (new Set(tickers).size !== tickers.length) return "Each ASX code can only appear once.";
   if (news.trim().length < MIN_NEWS) return `Paste a longer story. It needs at least ${MIN_NEWS} characters.`;
   if (!engines.length) return "Choose at least one engine.";
@@ -108,9 +109,7 @@ export default function App() {
     const problem = validate(holdings, news, engines);
     setError(problem);
     if (problem) return;
-    const cleaned = holdings
-      .filter((h) => h.ticker.trim())
-      .map((h) => ({ ticker: h.ticker.trim(), weight: h.weight }));
+    const cleaned = filledHoldings(holdings);
     setLoading(true);
     try {
       const res = await analyze(cleaned, news.trim(), engines);

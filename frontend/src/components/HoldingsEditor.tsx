@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { searchTickers, type HoldingInput, type TickerMatch } from "../lib/api";
 import { tickersToLookUp } from "../lib/history";
+import { weightTotal } from "../lib/holdings";
 
 interface Props {
   holdings: HoldingInput[];
@@ -44,7 +45,7 @@ export function HoldingsEditor({ holdings, onChange }: Props) {
   const update = (i: number, patch: Partial<HoldingInput>) =>
     onChange(holdings.map((h, j) => (j === i ? { ...h, ...patch } : h)));
 
-  const total = holdings.reduce((sum, h) => sum + (Number.isFinite(h.weight) ? h.weight : 0), 0);
+  const total = weightTotal(holdings);
   const offBy = Math.abs(total - 100) > 0.5;
 
   return (
