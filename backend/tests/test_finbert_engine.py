@@ -132,6 +132,25 @@ async def test_sentence_naming_one_company_is_not_split():
     assert calls == [["BHP fell, while the broader market rose."]]
 
 
+async def test_long_sentence_is_cut_down_around_the_mention():
+    # FinBERT reads only the first 512 tokens, so a mention near the end of a
+    # long run-on sentence would be cut off before the model saw it.
+    calls = []
+
+    def counting(sentences):
+        calls.append(list(sentences))
+        return fake_classifier(sentences)
+
+    filler = " ".join(["the group discussed operations in several regions"] * 60)
+    engine = FinbertEngine(classifier=counting)
+    (bhp,) = (await engine.analyze(f"{filler} and BHP shares fell sharply", holdings("BHP"))).per_holding
+
+    (scored,) = calls[0]
+    assert len(scored.split()) <= 200
+    assert scored.endswith("BHP shares fell sharply")
+    assert bhp.bearish == pytest.approx(0.8)
+
+
 async def test_no_mentions_skips_the_model():
     def boom(_):
         raise AssertionError("classifier should not run")

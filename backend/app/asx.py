@@ -116,9 +116,14 @@ def _lookalike_pattern(ticker: str) -> re.Pattern[str] | None:
     return re.compile("|".join(map(re.escape, phrases)), re.IGNORECASE) if phrases else None
 
 
-def mentions(text: str, holding: ResolvedHolding) -> bool:
+def find_mention(text: str, holding: ResolvedHolding) -> int | None:
+    """Where the first mention of the holding starts, or None."""
     if lookalikes := _lookalike_pattern(holding.ticker):
-        text = lookalikes.sub(" ", text)
-    if _ticker_pattern(holding.ticker).search(text):
-        return True
-    return any(_term_pattern(term).search(text) for term in holding.aliases)
+        # Same-length blanks, so positions still line up with the original text.
+        text = lookalikes.sub(lambda m: " " * len(m.group()), text)
+    patterns = [_ticker_pattern(holding.ticker), *map(_term_pattern, holding.aliases)]
+    return min((m.start() for p in patterns if (m := p.search(text))), default=None)
+
+
+def mentions(text: str, holding: ResolvedHolding) -> bool:
+    return find_mention(text, holding) is not None

@@ -12,13 +12,16 @@ import re
 import threading
 from collections.abc import Callable
 
-from ..asx import mentions
+from ..asx import find_mention, mentions
 from ..models import EngineResult, HoldingSentiment, ResolvedHolding
 from .base import EngineError, EngineStatus
 
 MODEL_ID = "ProsusAI/finbert"
 _MAX_QUOTED = 2
 _MAX_QUOTE_CHARS = 220
+# FinBERT reads at most 512 tokens. 200 words leaves room for numbers and rare
+# words that split into several tokens each.
+_MAX_WORDS = 200
 
 # A classifier takes sentences and returns, per sentence, every label with its score.
 Classifier = Callable[[list[str]], list[list[dict]]]
@@ -42,6 +45,18 @@ def _passage(sentence: str, holding: ResolvedHolding, holdings: list[ResolvedHol
         return sentence
     mine = [c.strip() for c in _CLAUSE_BREAK.split(sentence) if mentions(c, holding)]
     return " ".join(mine) if mine else sentence
+
+
+def _focus(passage: str, holding: ResolvedHolding) -> str:
+    """Keep a long passage to the words around the mention, so truncation can't drop it."""
+    if len(passage.split()) <= _MAX_WORDS:
+        return passage
+    start = find_mention(passage, holding)
+    if start is None:
+        return passage
+    before = passage[:start].split()[-(_MAX_WORDS // 2) :]
+    after = passage[start:].split()[: _MAX_WORDS // 2]
+    return " ".join(before + after)
 
 
 def _ends_with_abbreviation(fragment: str) -> bool:
@@ -94,7 +109,7 @@ class FinbertEngine:
 
     def _analyze_sync(self, news: str, holdings: list[ResolvedHolding]) -> EngineResult:
         sentences = split_sentences(news)
-        hits = {h.ticker: [_passage(s, h, holdings) for s in sentences if mentions(s, h)] for h in holdings}
+        hits = {h.ticker: [_focus(_passage(s, h, holdings), h) for s in sentences if mentions(s, h)] for h in holdings}
         to_score = list(dict.fromkeys(s for found in hits.values() for s in found))
 
         scores: dict[str, dict[str, float]] = {}

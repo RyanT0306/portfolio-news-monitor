@@ -1,6 +1,6 @@
 import pytest
 
-from app.asx import core_name, get_company, mentions, resolve, search
+from app.asx import core_name, find_mention, get_company, mentions, resolve, search
 from app.models import HoldingIn, ResolvedHolding
 
 
@@ -112,6 +112,11 @@ class TestMentions:
 
     def test_real_mention_next_to_a_lookalike_still_counts(self):
         assert mentions("Origin Energy sponsors State of Origin.", holding("ORG"))
+
+    def test_find_mention_returns_where_it_starts(self):
+        text = "State of Origin is on tonight, and Origin Energy is a sponsor."
+        assert find_mention(text, holding("ORG")) == text.index("Origin Energy")
+        assert find_mention("Nothing here.", holding("ORG")) is None
 
     def test_unknown_ticker_matches_only_by_ticker(self):
         h = ResolvedHolding(ticker="ZZZZ", weight=1.0)
