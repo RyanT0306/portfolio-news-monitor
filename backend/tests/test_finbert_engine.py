@@ -28,6 +28,34 @@ def test_split_sentences():
     assert split_sentences(text) == ["BHP fell 3%.", "Iron ore slumped!", "Analysts were cautious?", "Yes."]
 
 
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "Wesfarmers Ltd. CEO Rob Scott said sales fell.",
+        "Shares in BHP rose after U.S. President Trump eased tariffs.",
+        "Analysts at J.P. Morgan cut BHP to underweight.",
+        "Mr. Smith said BHP output fell.",
+        "The St. George Bank unit of Westpac grew.",
+    ],
+)
+def test_abbreviations_do_not_end_a_sentence(sentence):
+    assert split_sentences(sentence) == [sentence]
+
+
+def test_curly_quotes_around_a_sentence_end():
+    assert split_sentences("BHP cut jobs. “We are disappointed,” the union said.") == [
+        "BHP cut jobs.",
+        "“We are disappointed,” the union said.",
+    ]
+    assert split_sentences("He said “profit fell.” BHP shares dropped.") == ["He said “profit fell.”", "BHP shares dropped."]
+
+
+async def test_company_named_with_ltd_keeps_its_sentence():
+    engine = FinbertEngine(classifier=fake_classifier)
+    result = await engine.analyze("Wesfarmers Ltd. CEO Rob Scott said sales fell sharply.", holdings("WES"))
+    assert result.per_holding[0].bearish == pytest.approx(0.8)
+
+
 async def test_only_mentioned_holdings_are_relevant():
     engine = FinbertEngine(classifier=fake_classifier)
     result = await engine.analyze("BHP shares fell sharply on Monday. The weather was mild.", holdings("BHP", "CBA"))

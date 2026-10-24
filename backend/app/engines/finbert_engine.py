@@ -23,11 +23,29 @@ _MAX_QUOTE_CHARS = 220
 # A classifier takes sentences and returns, per sentence, every label with its score.
 Classifier = Callable[[list[str]], list[list[dict]]]
 
-_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[\"'(A-Z0-9])|\n+")
+_SENTENCE_END = re.compile(r"(?:(?<=[.!?])|(?<=[.!?][\"'”’]))\s+(?=[\"'“‘(A-Z0-9])")
+_ABBREVIATIONS = {"co", "corp", "dr", "inc", "jr", "ltd", "mr", "mrs", "ms", "mt", "no", "prof", "sr", "st", "vs"}
+_INITIALS = re.compile(r"(?:[A-Za-z]\.)+")  # U.S., J.P.
+
+
+def _ends_with_abbreviation(fragment: str) -> bool:
+    last = fragment.split()[-1].lstrip("\"'“‘(")
+    return last.rstrip(".").lower() in _ABBREVIATIONS or bool(_INITIALS.fullmatch(last))
 
 
 def split_sentences(text: str) -> list[str]:
-    return [s.strip() for s in _SENTENCE_END.split(text) if s and s.strip()]
+    # A period after "Ltd." or "U.S." usually isn't the end of the sentence, and
+    # splitting there would part a company's name from what's said about it.
+    # Line breaks always split.
+    sentences = []
+    for line in text.splitlines():
+        pieces = [p.strip() for p in _SENTENCE_END.split(line) if p.strip()]
+        for i, piece in enumerate(pieces):
+            if i and _ends_with_abbreviation(pieces[i - 1]):
+                sentences[-1] += " " + piece
+            else:
+                sentences.append(piece)
+    return sentences
 
 
 class FinbertEngine:
