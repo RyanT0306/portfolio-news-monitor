@@ -119,8 +119,20 @@ class ClaudeEngine:
             raise EngineError("Claude took too long to answer. Try again in a moment.") from exc
         except anthropic.APIConnectionError as exc:
             raise EngineError("Couldn't reach the Claude API. Check your internet connection.") from exc
+        except anthropic.NotFoundError as exc:
+            raise EngineError(f"Claude model {self.model!r} wasn't found. Check CLAUDE_MODEL in backend/.env.") from exc
         except anthropic.APIStatusError as exc:
-            raise EngineError(f"The Claude API returned an error ({exc.status_code}).") from exc
+            if exc.status_code >= 500:  # includes 529, overloaded
+                raise EngineError(f"Claude is busy right now ({exc.status_code}). Try again in a minute.") from exc
+            detail = _api_message(exc)
+            raise EngineError(f"The Claude API returned an error ({exc.status_code}){': ' + detail if detail else '.'}") from exc
+
+
+def _api_message(exc: anthropic.APIStatusError) -> str | None:
+    """The API's own explanation, such as a low credit balance, if it sent one."""
+    error = exc.body.get("error") if isinstance(exc.body, dict) else None
+    message = error.get("message") if isinstance(error, dict) else None
+    return message.strip()[:300] if isinstance(message, str) and message.strip() else None
 
 
 def _user_prompt(news: str, holdings: list[ResolvedHolding]) -> str:

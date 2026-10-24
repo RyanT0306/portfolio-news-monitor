@@ -152,6 +152,28 @@ async def test_timeout_is_not_reported_as_a_connection_problem():
         await ClaudeEngine(client=client).analyze(NEWS, HOLDINGS)
 
 
+def api_error(cls, code, message=None):
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    body = {"type": "error", "error": {"type": "x", "message": message}} if message else None
+    return cls(message or "error", response=httpx.Response(code, request=request), body=body)
+
+
+@pytest.mark.parametrize(
+    "err,expected",
+    [
+        (api_error(anthropic.OverloadedError, 529, "Overloaded"), "busy right now"),
+        (api_error(anthropic.InternalServerError, 500, "Internal server error"), "busy right now"),
+        (api_error(anthropic.NotFoundError, 404, "model: claude-opus-55 not found"), "CLAUDE_MODEL"),
+        (api_error(anthropic.BadRequestError, 400, "Your credit balance is too low."), "credit balance is too low"),
+        (api_error(anthropic.BadRequestError, 400), r"returned an error \(400\)"),
+    ],
+)
+async def test_api_errors_say_what_went_wrong(err, expected):
+    client, _ = fake_client(err)
+    with pytest.raises(EngineError, match=expected):
+        await ClaudeEngine(client=client).analyze(NEWS, HOLDINGS)
+
+
 def test_status_without_key_is_unavailable(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
