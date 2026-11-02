@@ -58,18 +58,29 @@ export default function App() {
   useEffect(() => saveHoldings(holdings), [holdings]);
   useEffect(() => saveEngines(engines), [engines]);
 
-  // Poll engine status until FinBERT has finished loading.
+  // Poll engine status until FinBERT has finished loading. Keep trying while the
+  // backend is down too, since it's often started after the page is opened.
   useEffect(() => {
     let timer: number | undefined;
+    let stopped = false;
+    const again = () => {
+      if (!stopped) timer = window.setTimeout(check, 3000);
+    };
     const check = () =>
       getHealth()
         .then((h) => {
           setStatus(h.engines);
-          if (h.engines.finbert === "not_loaded") timer = window.setTimeout(check, 3000);
+          if (h.engines.finbert === "not_loaded") again();
         })
-        .catch(() => setStatus({}));
+        .catch(() => {
+          setStatus({});
+          again();
+        });
     check();
-    return () => window.clearTimeout(timer);
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+    };
   }, []);
 
   function toggleEngine(name: EngineName) {
@@ -258,7 +269,7 @@ function EngineNote({ name, status }: { name: EngineName; status?: EngineStatus 
   if (name === "finbert" && status === "unavailable")
     return (
       <p className="notice small">
-        FinBERT isn't installed. Run <code>pip install -e '.[finbert]'</code> in <code>backend</code>.
+        FinBERT isn't installed. Run <code>uv pip install -e '.[finbert]'</code> in <code>backend</code>.
       </p>
     );
   return null;
